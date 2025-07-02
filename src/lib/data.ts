@@ -1,3 +1,4 @@
+
 export const audits = [
     { id: 'AUD-001', name: 'Q3 Financial Statement Audit', auditor: 'Alice Johnson', startDate: '2024-07-15', endDate: '2024-08-15', status: 'In Progress' },
     { id: 'AUD-002', name: 'IT Security Compliance Check', auditor: 'Bob Williams', startDate: '2024-08-01', endDate: '2024-08-31', status: 'Scheduled' },
@@ -72,3 +73,5 @@ export const audits = [
       findings: []
     },
   ];
+
+export type Report = typeof reports[0];

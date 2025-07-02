@@ -1,10 +1,15 @@
+
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Download, BarChart2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { reports } from "@/lib/data";
+import { useToast } from "@/hooks/use-toast";
+import { reports, type Report } from "@/lib/data";
 
 const statusVariant = {
   'Finalized': 'default',
@@ -12,7 +17,17 @@ const statusVariant = {
 } as const;
 
 export default function ReportsPage() {
-  const selectedReport = reports[0];
+  const [selectedReport, setSelectedReport] = useState<Report | null>(reports.length > 0 ? reports[0] : null);
+  const { toast } = useToast();
+
+  const handleDownload = () => {
+    if (selectedReport) {
+      toast({
+        title: "Downloading...",
+        description: `Preparing to download report ${selectedReport.id}.`,
+      });
+    }
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -25,7 +40,7 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Generated Reports</CardTitle>
-              <CardDescription>Access and download all audit reports.</CardDescription>
+              <CardDescription>Select a report to preview.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -38,7 +53,12 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {reports.map((report) => (
-                    <TableRow key={report.id}>
+                    <TableRow 
+                      key={report.id} 
+                      onClick={() => setSelectedReport(report)}
+                      className="cursor-pointer"
+                      data-state={selectedReport?.id === report.id ? 'selected' : ''}
+                    >
                       <TableCell className="font-medium">{report.id}<br/><span className="text-xs text-muted-foreground">{report.title}</span></TableCell>
                       <TableCell>{report.date}</TableCell>
                       <TableCell><Badge variant={statusVariant[report.status]}>{report.status}</Badge></TableCell>
@@ -58,7 +78,7 @@ export default function ReportsPage() {
                   <CardTitle>Report Preview: {selectedReport.id}</CardTitle>
                   <CardDescription>{selectedReport.title}</CardDescription>
                 </div>
-                <Button size="sm">
+                <Button size="sm" onClick={handleDownload}>
                   <Download className="mr-2 h-4 w-4" />
                   Download PDF
                 </Button>
@@ -109,8 +129,11 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>No report to display</CardTitle>
-                <CardDescription>There are no reports available to preview.</CardDescription>
+                <CardDescription>Select a report from the list to preview it here.</CardDescription>
               </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">There are no reports available to preview.</p>
+              </CardContent>
             </Card>
           )}
         </div>

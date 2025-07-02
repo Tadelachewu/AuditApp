@@ -1,21 +1,98 @@
+
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { checklists } from "@/lib/data";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { checklists as initialChecklists } from "@/lib/data";
+import { format } from "date-fns";
 
 export default function ChecklistsPage() {
+  const [checklists, setChecklists] = useState(initialChecklists);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newChecklistName, setNewChecklistName] = useState("");
+  const [newChecklistCategory, setNewChecklistCategory] = useState("");
+
+  const { toast } = useToast();
+
+  const handleAction = (action: string, checklistId: string) => {
+    toast({
+      title: "Action Triggered",
+      description: `${action} on checklist ${checklistId}`,
+    });
+  };
+  
+  const handleCreateChecklist = () => {
+    if (newChecklistName.trim() && newChecklistCategory.trim()) {
+      const newChecklist = {
+        id: `CHK-NEW-${String(checklists.length + 1).padStart(2, '0')}`,
+        name: newChecklistName,
+        category: newChecklistCategory,
+        lastUpdated: format(new Date(), "yyyy-MM-dd"),
+      };
+      setChecklists([newChecklist, ...checklists]);
+      toast({
+        title: "Success!",
+        description: "New checklist created.",
+      });
+      setIsDialogOpen(false);
+      setNewChecklistName("");
+      setNewChecklistCategory("");
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please fill out all fields.",
+        });
+    }
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Checklist Management</h2>
         <div className="flex items-center space-x-2">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create New Checklist
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New Checklist
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Create New Checklist</DialogTitle>
+                <DialogDescription>
+                  Enter the details for the new checklist template.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input id="name" value={newChecklistName} onChange={(e) => setNewChecklistName(e.target.value)} className="col-span-3" placeholder="e.g. Quarterly Server Maintenance" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Category
+                  </Label>
+                  <Input id="category" value={newChecklistCategory} onChange={(e) => setNewChecklistCategory(e.target.value)} className="col-span-3" placeholder="e.g. IT Security" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleCreateChecklist}>Create Checklist</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       <Card>
@@ -55,9 +132,9 @@ export default function ChecklistsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem>Archive</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction('Edit', checklist.id)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction('Duplicate', checklist.id)}>Duplicate</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction('Archive', checklist.id)}>Archive</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

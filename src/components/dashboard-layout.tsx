@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -27,9 +28,11 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Card } from './ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { toast } = useToast();
 
   const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -39,6 +42,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: '/reports', label: 'Reports', icon: FileText },
     { href: '/documents', label: 'Documents', icon: Folder },
   ];
+
+  const handleSettingsClick = () => {
+    toast({
+      title: "Settings",
+      description: "Settings page is not yet implemented.",
+    });
+  };
+
+  const handleLogoutClick = () => {
+    toast({
+      title: "Logout",
+      description: "You have been logged out.",
+    });
+  };
 
   return (
     <SidebarProvider>
@@ -70,7 +87,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <SidebarHeader>
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="User" />
+                <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar" />
                 <AvatarFallback>XB</AvatarFallback>
               </Avatar>
               <div className="flex flex-col text-sm">
@@ -81,13 +98,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton onClick={handleSettingsClick}>
                   <Settings />
                   <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton onClick={handleLogoutClick}>
                   <LogOut />
                   <span>Logout</span>
                 </SidebarMenuButton>
