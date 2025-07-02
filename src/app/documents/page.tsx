@@ -4,15 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Download, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { documents } from "@/lib/data";
 
-
-const documents = [
-  { id: 'DOC-POL-001', title: 'Information Security Policy', type: 'Policy', version: 'v3.2', uploadDate: '2024-01-15' },
-  { id: 'DOC-PRC-004', title: 'Incident Response Procedure', type: 'Procedure', version: 'v2.1', uploadDate: '2024-03-22' },
-  { id: 'DOC-EVD-102', title: 'Q2 Firewall Configuration Logs', type: 'Evidence', version: 'N/A', uploadDate: '2024-07-01' },
-  { id: 'DOC-RPT-034', title: 'Penetration Test Report - May 2024', type: 'Report', version: 'v1.0', uploadDate: '2024-06-05' },
-  { id: 'DOC-POL-002', title: 'Data Privacy Policy', type: 'Policy', version: 'v1.5', uploadDate: '2023-11-20' },
-];
 
 export default function DocumentsPage() {
   return (

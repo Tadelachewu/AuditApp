@@ -4,14 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-const checklists = [
-  { id: 'CHK-FIN-01', name: 'Quarterly Financial Closing', category: 'Finance', lastUpdated: '2024-06-28' },
-  { id: 'CHK-IT-03', name: 'Server Security Hardening', category: 'IT Security', lastUpdated: '2024-07-05' },
-  { id: 'CHK-OPS-02', name: 'New Employee Onboarding', category: 'Operations', lastUpdated: '2024-05-15' },
-  { id: 'CHK-CMP-05', name: 'AML Transaction Monitoring', category: 'Compliance', lastUpdated: '2024-07-11' },
-  { id: 'CHK-HR-01', name: 'Annual Performance Review', category: 'Human Resources', lastUpdated: '2024-04-30' },
-];
+import { checklists } from "@/lib/data";
 
 export default function ChecklistsPage() {
   return (

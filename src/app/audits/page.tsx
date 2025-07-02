@@ -3,14 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle } from "lucide-react";
-
-const audits = [
-  { id: 'AUD-001', name: 'Q3 Financial Statement Audit', auditor: 'Alice Johnson', startDate: '2024-07-15', endDate: '2024-08-15', status: 'In Progress' },
-  { id: 'AUD-002', name: 'IT Security Compliance Check', auditor: 'Bob Williams', startDate: '2024-08-01', endDate: '2024-08-31', status: 'Scheduled' },
-  { id: 'AUD-003', name: 'Branch Operations Review (Downtown)', auditor: 'Charlie Brown', startDate: '2024-06-20', endDate: '2024-07-10', status: 'Completed' },
-  { id: 'AUD-004', name: 'AML Policy Adherence Audit', auditor: 'Diana Prince', startDate: '2024-07-25', endDate: '2024-08-25', status: 'Scheduled' },
-  { id: 'AUD-005', name: 'Q2 Customer Data Privacy Audit', auditor: 'Alice Johnson', startDate: '2024-05-10', endDate: '2024-06-10', status: 'Completed' },
-];
+import { audits } from "@/lib/data";
 
 const statusVariant = {
   'In Progress': 'secondary',
