@@ -12,11 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { checklists as initialChecklists } from "@/lib/data";
-import { format } from "date-fns";
+import { createChecklist } from "./actions";
+import type { Checklist } from "@/lib/definitions";
 
-export default function ChecklistsPage() {
-  const [checklists, setChecklists] = useState(initialChecklists);
+// This component now receives props from the server component wrapper
+export default function ChecklistClientPage({ checklists }: { checklists: Checklist[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newChecklistName, setNewChecklistName] = useState("");
   const [newChecklistCategory, setNewChecklistCategory] = useState("");
@@ -30,22 +30,29 @@ export default function ChecklistsPage() {
     });
   };
   
-  const handleCreateChecklist = () => {
+  const handleCreateChecklist = async () => {
     if (newChecklistName.trim() && newChecklistCategory.trim()) {
-      const newChecklist = {
-        id: `CHK-NEW-${String(checklists.length + 1).padStart(2, '0')}`,
-        name: newChecklistName,
-        category: newChecklistCategory,
-        lastUpdated: format(new Date(), "yyyy-MM-dd"),
-      };
-      setChecklists([newChecklist, ...checklists]);
-      toast({
-        title: "Success!",
-        description: "New checklist created.",
-      });
-      setIsDialogOpen(false);
-      setNewChecklistName("");
-      setNewChecklistCategory("");
+      const formData = new FormData();
+      formData.append('name', newChecklistName);
+      formData.append('category', newChecklistCategory);
+      
+      const result = await createChecklist({}, formData);
+
+      if (result.message.includes("Success")) {
+        toast({
+            title: "Success!",
+            description: "New checklist created.",
+        });
+        setIsDialogOpen(false);
+        setNewChecklistName("");
+        setNewChecklistCategory("");
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.message || "An unknown error occurred.",
+        });
+      }
     } else {
         toast({
             variant: "destructive",
@@ -121,7 +128,7 @@ export default function ChecklistsPage() {
                   <TableCell>
                     <Badge variant="outline">{checklist.category}</Badge>
                   </TableCell>
-                  <TableCell>{checklist.lastUpdated}</TableCell>
+                  <TableCell>{checklist.last_updated}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

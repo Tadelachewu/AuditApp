@@ -1,24 +1,53 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, BarChart2 } from "lucide-react";
+import { Download, BarChart2, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { reports, type Report } from "@/lib/data";
+import { fetchReportById } from "@/lib/queries";
+import type { Report, ReportFinding } from "@/lib/definitions";
 
 const statusVariant = {
   'Finalized': 'default',
   'Draft': 'secondary',
 } as const;
 
-export default function ReportsPage() {
-  const [selectedReport, setSelectedReport] = useState<Report | null>(reports.length > 0 ? reports[0] : null);
+type DetailedReport = Report & { findings: ReportFinding[] };
+
+export default function ReportsClientPage({ reports }: { reports: Report[] }) {
+  const [selectedReport, setSelectedReport] = useState<DetailedReport | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Pre-select the first report if available
+    if (reports.length > 0 && !selectedReport) {
+      handleSelectReport(reports[0].id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports]);
+
+  const handleSelectReport = async (reportId: string) => {
+    setIsLoading(true);
+    setSelectedReport(null);
+    try {
+      const reportDetails = await fetchReportById(reportId);
+      if (reportDetails) {
+        setSelectedReport(reportDetails);
+      } else {
+        toast({ variant: "destructive", title: "Error", description: "Report details could not be found." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to fetch report details." });
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleDownload = () => {
     if (selectedReport) {
@@ -55,7 +84,7 @@ export default function ReportsPage() {
                   {reports.map((report) => (
                     <TableRow 
                       key={report.id} 
-                      onClick={() => setSelectedReport(report)}
+                      onClick={() => handleSelectReport(report.id)}
                       className="cursor-pointer"
                       data-state={selectedReport?.id === report.id ? 'selected' : ''}
                     >
@@ -71,7 +100,16 @@ export default function ReportsPage() {
         </div>
 
         <div className="lg:col-span-3">
-          {selectedReport ? (
+          {isLoading ? (
+            <Card>
+                <CardContent className="pt-6 flex items-center justify-center h-96">
+                    <div className="flex items-center justify-center flex-col gap-4 text-center">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                        <h3 className="text-xl font-semibold">Loading Report...</h3>
+                    </div>
+                </CardContent>
+            </Card>
+          ) : selectedReport ? (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -91,7 +129,7 @@ export default function ReportsPage() {
                   </p>
                 </div>
                 
-                {selectedReport.compliance && (
+                {selectedReport.compliance_score !== null && (
                   <>
                     <Separator />
                     <div>
@@ -99,8 +137,8 @@ export default function ReportsPage() {
                       <div className="mt-2 flex items-center gap-4">
                         <BarChart2 className="h-10 w-10 text-primary" />
                         <div>
-                          <p className="font-bold text-2xl">{selectedReport.compliance.score}% Compliant</p>
-                          <p className="text-sm text-muted-foreground">{selectedReport.compliance.details}</p>
+                          <p className="font-bold text-2xl">{selectedReport.compliance_score}% Compliant</p>
+                          <p className="text-sm text-muted-foreground">{selectedReport.compliance_details}</p>
                         </div>
                       </div>
                     </div>
@@ -113,8 +151,8 @@ export default function ReportsPage() {
                     <div>
                       <h3 className="text-lg font-semibold">Key Findings & Recommendations</h3>
                       <ul className="list-disc list-inside space-y-2 mt-2 text-sm">
-                        {selectedReport.findings.map((finding, index) => (
-                          <li key={index}>
+                        {selectedReport.findings.map((finding) => (
+                          <li key={finding.id}>
                             <span className="font-semibold">{finding.title}</span>
                             <br/><span className="text-muted-foreground pl-4">→ Recommendation: {finding.recommendation}</span>
                           </li>
