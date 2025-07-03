@@ -38,13 +38,11 @@ export async function createChecklist(prevState: State, formData: FormData) {
     }
 
     const { name, category } = validatedFields.data;
-    const id = `CHK-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
     try {
         await prisma.$transaction([
             prisma.checklist.create({
                 data: {
-                    id,
                     name,
                     category,
                     lastUpdated: new Date(),
@@ -116,13 +114,10 @@ export async function duplicateChecklist(id: string) {
             return { message: "Checklist not found.", success: false };
         }
         
-        const newId = `CHK-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-
         await prisma.checklist.create({
             data: {
-                ...original,
-                id: newId,
                 name: `${original.name} (Copy)`,
+                category: original.category,
                 lastUpdated: new Date(),
             }
         });

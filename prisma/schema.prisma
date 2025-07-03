@@ -3,7 +3,8 @@
 
 generator client {
   provider   = "prisma-client-js"
-  engineType = "library" // Use the JS-based library engine to avoid native binary issues
+  // This is the crucial change to fix the environment issue
+  engineType = "library"
 }
 
 datasource db {
@@ -20,8 +21,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedAudits   Audit[]
-  generatedReports Report[]
+  audits  Audit[]  @relation("AuditorToAudit")
+  reports Report[] @relation("GeneratorToReport")
 }
 
 enum Role {
@@ -34,10 +35,10 @@ model Audit {
   name      String
   startDate DateTime
   endDate   DateTime
-  status    String
+  status    String // 'In Progress', 'Scheduled', 'Completed'
 
   auditorId String
-  auditor   User   @relation(fields: [auditorId], references: [id])
+  auditor   User   @relation("AuditorToAudit", fields: [auditorId], references: [id], onDelete: Cascade)
 
   reports Report[]
 }
@@ -52,7 +53,7 @@ model Checklist {
 model Document {
   id         String   @id @default(cuid())
   title      String
-  type       String
+  type       String // 'Policy', 'Procedure', 'Evidence', 'Report'
   version    String
   uploadDate DateTime
 }
@@ -61,15 +62,15 @@ model Report {
   id                String   @id @default(cuid())
   title             String
   date              DateTime
-  status            String
+  status            String // 'Finalized', 'Draft'
   summary           String?
   complianceScore   Int?
   complianceDetails String?
 
   auditId       String
-  audit         Audit  @relation(fields: [auditId], references: [id])
+  audit         Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
   generatedById String
-  generatedBy   User   @relation(fields: [generatedById], references: [id])
+  generatedBy   User   @relation("GeneratorToReport", fields: [generatedById], references: [id], onDelete: Cascade)
 
   findings ReportFinding[]
 }
@@ -85,7 +86,7 @@ model ReportFinding {
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String
+  type        String // 'Audit', 'Checklist', 'Report'
   date        DateTime
   description String
   createdAt   DateTime @default(now())
