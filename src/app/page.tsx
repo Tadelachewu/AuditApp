@@ -15,9 +15,9 @@ export default async function DashboardPage() {
     checklistsCount,
     openFindingsCount,
     generatedReportsCount 
-  } = await fetchCardData();
+  } = await fetchCardData(user);
   
-  const upcomingDeadlines = await fetchUpcomingDeadlines();
+  const upcomingDeadlines = await fetchUpcomingDeadlines(user);
   const recentActivities = await fetchRecentActivities();
   
   const activityIcons: Record<ActivityType['type'], React.ReactNode> = {

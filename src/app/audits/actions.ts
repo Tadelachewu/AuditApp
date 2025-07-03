@@ -5,9 +5,12 @@ import prisma from "@/lib/db";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { getSession } from "@/lib/session";
 import type { User } from "@prisma/client";
+import { RiskLevel } from "@prisma/client";
 
 const auditFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
+  scope: z.string().min(3, "Scope must be at least 3 characters"),
+  riskLevel: z.nativeEnum(RiskLevel),
   auditorId: z.string().min(1, "Auditor is required"),
   startDate: z.date({ required_error: "A start date is required." }),
   endDate: z.date({ required_error: "An end date is required." }),
@@ -19,6 +22,8 @@ const auditFormSchema = z.object({
 export type State = {
   errors?: {
     name?: string[];
+    scope?: string[];
+    riskLevel?: string[];
     auditorId?: string[];
     startDate?: string[];
     endDate?: string[];
@@ -35,6 +40,8 @@ export async function createAudit(prevState: State, formData: FormData) {
 
   const validatedFields = auditFormSchema.safeParse({
     name: formData.get("name"),
+    scope: formData.get("scope"),
+    riskLevel: formData.get("riskLevel"),
     auditorId: formData.get("auditorId"),
     startDate: new Date(formData.get("startDate") as string),
     endDate: new Date(formData.get("endDate") as string),
@@ -48,7 +55,7 @@ export async function createAudit(prevState: State, formData: FormData) {
     };
   }
 
-  const { name, auditorId, startDate, endDate } = validatedFields.data;
+  const { name, scope, riskLevel, auditorId, startDate, endDate } = validatedFields.data;
   const status = 'Scheduled';
 
   try {
@@ -56,6 +63,8 @@ export async function createAudit(prevState: State, formData: FormData) {
       prisma.audit.create({
         data: {
           name,
+          scope,
+          riskLevel,
           auditorId,
           startDate,
           endDate,
@@ -92,9 +101,9 @@ export async function fetchAuditors(): Promise<User[]> {
     try {
         const users = await prisma.user.findMany({
             where: {
-                role: 'AUDITOR'
+                // Fetch users who are either ADMIN or AUDITOR to assign audits
+                role: { in: ['ADMIN', 'AUDITOR'] }
             },
-            // Select only the fields needed on the client to avoid leaking sensitive data
             select: {
                 id: true,
                 name: true,

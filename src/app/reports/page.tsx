@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 
 export default async function ReportsPage() {
   const user = await getSession();
-  const reports = await fetchReports();
+  const reports = await fetchReports(user);
   return (
     <DashboardLayout user={user}>
       <ReportsClientPage reports={reports || []} />

@@ -10,12 +10,26 @@ import { Download, BarChart2, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getReportDetails } from "./actions";
-import type { Report, DetailedReport } from "@/lib/definitions";
+import type { Report, DetailedReport, ReportFinding } from "@/lib/definitions";
+import type { FindingRiskRating, FindingStatus } from "@prisma/client";
 
 const statusVariant = {
   'Finalized': 'default',
   'Draft': 'secondary',
 } as const;
+
+const riskRatingVariant: Record<FindingRiskRating, 'destructive' | 'secondary' | 'outline' | 'default'> = {
+  CRITICAL: 'destructive',
+  HIGH: 'destructive',
+  MEDIUM: 'secondary',
+  LOW: 'outline',
+}
+
+const findingStatusVariant: Record<FindingStatus, 'secondary' | 'default' | 'outline'> = {
+  OPEN: 'secondary',
+  IN_PROGRESS: 'default',
+  REMEDIATED: 'outline',
+}
 
 export default function ReportsClientPage({ reports }: { reports: Report[] }) {
   const [selectedReport, setSelectedReport] = useState<DetailedReport | null>(null);
@@ -74,7 +88,7 @@ export default function ReportsClientPage({ reports }: { reports: Report[] }) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Report ID</TableHead>
+                    <TableHead>Report Title</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -87,7 +101,7 @@ export default function ReportsClientPage({ reports }: { reports: Report[] }) {
                       className="cursor-pointer"
                       data-state={selectedReport?.id === report.id ? 'selected' : ''}
                     >
-                      <TableCell className="font-medium">{report.id}<br/><span className="text-xs text-muted-foreground">{report.title}</span></TableCell>
+                      <TableCell className="font-medium">{report.title}</TableCell>
                       <TableCell>{report.date}</TableCell>
                       <TableCell><Badge variant={statusVariant[report.status]}>{report.status}</Badge></TableCell>
                     </TableRow>
@@ -112,7 +126,7 @@ export default function ReportsClientPage({ reports }: { reports: Report[] }) {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Report Preview: {selectedReport.id}</CardTitle>
+                  <CardTitle>Report Preview</CardTitle>
                   <CardDescription>{selectedReport.title}</CardDescription>
                 </div>
                 <Button size="sm" onClick={handleDownload}>
@@ -149,14 +163,30 @@ export default function ReportsClientPage({ reports }: { reports: Report[] }) {
                     <Separator />
                     <div>
                       <h3 className="text-lg font-semibold">Key Findings & Recommendations</h3>
-                      <ul className="list-disc list-inside space-y-2 mt-2 text-sm">
+                      <div className="space-y-4 mt-2">
                         {selectedReport.findings.map((finding) => (
-                          <li key={finding.id}>
-                            <span className="font-semibold">{finding.title}</span>
-                            <br/><span className="text-muted-foreground pl-4">→ Recommendation: {finding.recommendation}</span>
-                          </li>
+                          <div key={finding.id} className="p-3 border rounded-md bg-muted/20">
+                            <div className="flex justify-between items-start">
+                               <p className="font-semibold">{finding.title}</p>
+                               <Badge variant={riskRatingVariant[finding.riskRating]}>{finding.riskRating}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                <span className="font-semibold text-foreground">Recommendation:</span> {finding.recommendation}
+                            </p>
+                             <div className="flex items-center gap-4 mt-3 text-xs">
+                                <div>
+                                    <span className="font-semibold">Status:</span>
+                                    <Badge variant={findingStatusVariant[finding.status]} className="ml-2">{finding.status}</Badge>
+                                </div>
+                                <Separator orientation="vertical" className="h-4" />
+                                <div>
+                                    <span className="font-semibold">Owner:</span>
+                                    <span className="ml-2 text-muted-foreground">{finding.owner}</span>
+                                </div>
+                            </div>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                    </>
                 )}

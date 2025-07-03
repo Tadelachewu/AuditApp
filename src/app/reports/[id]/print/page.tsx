@@ -2,6 +2,7 @@ import { getReportDetails } from "@/app/reports/actions";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import PrintTrigger from "./print-trigger";
+import type { FindingRiskRating, FindingStatus, RiskLevel } from "@prisma/client";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,19 @@ export default async function ReportPrintPage({ params }: { params: { id: string
     'Finalized': 'default',
     'Draft': 'secondary',
   } as const;
+
+  const riskRatingVariant: Record<FindingRiskRating, 'destructive' | 'secondary' | 'outline' | 'default'> = {
+    CRITICAL: 'destructive',
+    HIGH: 'destructive',
+    MEDIUM: 'secondary',
+    LOW: 'outline',
+  }
+
+  const findingStatusVariant: Record<FindingStatus, 'secondary' | 'default' | 'outline'> = {
+    OPEN: 'secondary',
+    IN_PROGRESS: 'default',
+    REMEDIATED: 'outline',
+  }
 
   return (
     <>
@@ -103,10 +117,23 @@ export default async function ReportPrintPage({ params }: { params: { id: string
                 <div className="space-y-6">
                   {report.findings.map((finding, index) => (
                     <div key={finding.id} className="p-4 border rounded-lg bg-gray-50/50 break-inside-avoid">
-                      <h3 className="font-bold text-lg">{index + 1}. {finding.title}</h3>
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-lg flex-1 pr-4">{index + 1}. {finding.title}</h3>
+                        <Badge variant={riskRatingVariant[finding.riskRating]}>{finding.riskRating}</Badge>
+                      </div>
                       <p className="text-gray-600 mt-2 pl-5">
                         <span className="font-semibold">Recommendation:</span> {finding.recommendation}
                       </p>
+                       <div className="flex items-center gap-6 mt-3 pl-5 text-sm">
+                          <div>
+                              <span className="font-semibold">Status:</span>
+                              <Badge variant={findingStatusVariant[finding.status]} className="ml-2">{finding.status}</Badge>
+                          </div>
+                          <div>
+                              <span className="font-semibold">Owner:</span>
+                              <span className="ml-2 text-gray-600">{finding.owner}</span>
+                          </div>
+                      </div>
                     </div>
                   ))}
                 </div>

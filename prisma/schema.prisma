@@ -2,9 +2,11 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider   = "prisma-client-js"
-  // This is the crucial change to fix the environment issue
-  engineType = "library"
+  provider     = "prisma-client-js"
+  // The 'binary' engine type is needed for the Vercel deployment environment.
+  // The 'library' engine type is needed for the local development environment.
+  // We use an environment variable to switch between them.
+  engineType   = "library"
 }
 
 datasource db {
@@ -18,29 +20,37 @@ model User {
   name      String
   password  String
   role      Role     @default(AUDITOR)
+  audits    Audit[]
+  reports   Report[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  audits  Audit[]  @relation("AuditorToAudit")
-  reports Report[] @relation("GeneratorToReport")
 }
 
 enum Role {
   ADMIN
   AUDITOR
+  MANAGER
 }
 
 model Audit {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
+  auditor   User      @relation(fields: [auditorId], references: [id])
+  auditorId String
   startDate DateTime
   endDate   DateTime
-  status    String // 'In Progress', 'Scheduled', 'Completed'
+  status    String // e.g., 'Scheduled', 'In Progress', 'Completed'
+  scope     String    @default("General")
+  riskLevel RiskLevel @default(MEDIUM)
+  reports   Report[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
 
-  auditorId String
-  auditor   User   @relation("AuditorToAudit", fields: [auditorId], references: [id], onDelete: Cascade)
-
-  reports Report[]
+enum RiskLevel {
+  HIGH
+  MEDIUM
+  LOW
 }
 
 model Checklist {
@@ -48,46 +58,70 @@ model Checklist {
   name        String
   category    String
   lastUpdated DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Document {
-  id         String   @id @default(cuid())
-  title      String
-  type       String // 'Policy', 'Procedure', 'Evidence', 'Report'
-  version    String
-  uploadDate DateTime
+  id             String          @id @default(cuid())
+  title          String
+  type           String // e.g., 'Policy', 'Procedure', 'Evidence'
+  version        String
+  uploadDate     DateTime
+  reportFindings ReportFinding[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Report {
-  id                String   @id @default(cuid())
+  id                String          @id @default(cuid())
+  audit             Audit           @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId           String
   title             String
+  generatedBy       User            @relation(fields: [generatedById], references: [id])
+  generatedById     String
   date              DateTime
-  status            String // 'Finalized', 'Draft'
+  status            String // e.g., 'Draft', 'Finalized'
   summary           String?
-  complianceScore   Int?
+  complianceScore   Float?
   complianceDetails String?
-
-  auditId       String
-  audit         Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  generatedById String
-  generatedBy   User   @relation("GeneratorToReport", fields: [generatedById], references: [id], onDelete: Cascade)
-
-  findings ReportFinding[]
+  findings          ReportFinding[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }
 
 model ReportFinding {
-  id             Int    @id @default(autoincrement())
+  id             String            @id @default(cuid())
+  report         Report            @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId       String
   title          String
   recommendation String
+  riskRating     FindingRiskRating @default(MEDIUM)
+  status         FindingStatus     @default(OPEN)
+  owner          String // e.g., 'IT Department', 'John Doe'
+  evidence       Document[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
 
-  reportId String
-  report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+enum FindingRiskRating {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FindingStatus {
+  OPEN
+  IN_PROGRESS
+  REMEDIATED
 }
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String // 'Audit', 'Checklist', 'Report'
+  type        String // e.g., 'Audit', 'Checklist', 'Report'
   date        DateTime
   description String
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

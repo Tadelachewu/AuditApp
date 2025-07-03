@@ -1,4 +1,4 @@
-import type { User as PrismaUser } from '@prisma/client';
+import type { User as PrismaUser, Role, RiskLevel, FindingRiskRating, FindingStatus } from '@prisma/client';
 
 export type User = Omit<PrismaUser, 'password'>;
 
@@ -9,6 +9,8 @@ export type Audit = {
   start_date: string;
   end_date: string;
   status: 'In Progress' | 'Scheduled' | 'Completed';
+  scope: string;
+  riskLevel: RiskLevel;
 };
 
 export type Checklist = {
@@ -27,10 +29,13 @@ export type Document = {
 };
 
 export type ReportFinding = {
-  id: number;
+  id: string;
   report_id: string;
   title: string;
   recommendation: string;
+  riskRating: FindingRiskRating;
+  status: FindingStatus;
+  owner: string;
 };
 
 export type Report = {
