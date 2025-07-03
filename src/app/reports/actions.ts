@@ -1,12 +1,12 @@
 'use server';
 
 import prisma from '@/lib/db';
-import { noStore } from 'next/cache';
+import * as cache from 'next/cache';
 import { format } from 'date-fns';
 import type { DetailedReport } from "@/lib/definitions";
 
 export async function getReportDetails(id: string): Promise<DetailedReport | null> {
-  noStore();
+  cache.noStore();
   try {
     const report = await prisma.report.findUnique({
       where: { id },
