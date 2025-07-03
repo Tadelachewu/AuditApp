@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { User } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,12 +27,11 @@ const documentFormSchema = z.object({
   type: z.string().min(1, "Type is required"),
 });
 
-export default function DocumentsClientPage({ documents, user }: { documents: Document[], user: User }) {
+export default function DocumentsClientPage({ documents }: { documents: Document[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const { toast } = useToast();
-  const canModify = user.role === 'ADMIN' || user.role === 'AUDITOR';
 
   const form = useForm<z.infer<typeof documentFormSchema>>({
     resolver: zodResolver(documentFormSchema),
@@ -156,12 +154,10 @@ export default function DocumentsClientPage({ documents, user }: { documents: Do
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Document Management</h2>
         <div className="flex items-center space-x-2">
-          {canModify && (
             <Button onClick={handleCreate}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Upload Document
             </Button>
-          )}
         </div>
       </div>
       <Card>
@@ -177,11 +173,9 @@ export default function DocumentsClientPage({ documents, user }: { documents: Do
                 <TableHead>Type</TableHead>
                 <TableHead>Version</TableHead>
                 <TableHead>Upload Date</TableHead>
-                {canModify && (
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                )}
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -193,8 +187,7 @@ export default function DocumentsClientPage({ documents, user }: { documents: Do
                   </TableCell>
                   <TableCell>{doc.version}</TableCell>
                   <TableCell>{doc.upload_date}</TableCell>
-                  {canModify && (
-                    <TableCell>
+                  <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -220,7 +213,6 @@ export default function DocumentsClientPage({ documents, user }: { documents: Do
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                  )}
                 </TableRow>
               ))}
             </TableBody>

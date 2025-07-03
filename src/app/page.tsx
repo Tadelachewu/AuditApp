@@ -5,23 +5,16 @@ import { format } from 'date-fns';
 import { fetchCardData, fetchRecentActivities, fetchUpcomingDeadlines } from '@/lib/queries';
 import type { Activity as ActivityType } from '@/lib/definitions';
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { getSession } from '@/lib/session';
-import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
-  const user = await getSession();
-  if (!user) {
-    redirect('/login');
-  }
-
   const { 
     ongoingAuditsCount,
     checklistsCount,
     openFindingsCount,
     generatedReportsCount 
-  } = await fetchCardData(user);
+  } = await fetchCardData();
   
-  const upcomingDeadlines = await fetchUpcomingDeadlines(user);
+  const upcomingDeadlines = await fetchUpcomingDeadlines();
   const recentActivities = await fetchRecentActivities();
   
   const activityIcons: Record<ActivityType['type'], React.ReactNode> = {
@@ -31,7 +24,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <DashboardLayout user={user}>
+    <DashboardLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
