@@ -39,13 +39,11 @@ export async function createDocument(prevState: State, formData: FormData) {
     }
 
     const { title, type } = validatedFields.data;
-    const id = `DOC-${String(Math.floor(Math.random() * 9000) + 1000)}`;
     const version = "v1.0";
 
     try {
         await prisma.document.create({
             data: {
-                id,
                 title,
                 type,
                 version,
@@ -121,13 +119,10 @@ export async function duplicateDocument(id: string) {
             return { message: "Document not found.", success: false, };
         }
         
-        const newId = `DOC-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-
         await prisma.document.create({
             data: {
-                ...original,
-                id: newId,
                 title: `${original.title} (Copy)`,
+                type: original.type,
                 version: 'v1.0',
                 uploadDate: new Date(),
             }
