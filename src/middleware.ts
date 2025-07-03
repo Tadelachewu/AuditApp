@@ -1,32 +1,34 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getSession } from '@/lib/session';
+import { decrypt } from '@/lib/session';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow requests for auth pages, API routes, and static files
+  // Allow API routes and static files to pass through immediately
   if (
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
     pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
+    pathname.startsWith('/_next/static') ||
+    pathname.startsWith('/_next/image') ||
     pathname.endsWith('.ico') ||
     pathname.endsWith('.png')
   ) {
     return NextResponse.next();
   }
 
-  // Check for session on all other routes
-  const session = await getSession();
-  
-  // If no session and not on an auth page, redirect to login
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  const sessionCookie = request.cookies.get('session')?.value;
+  const sessionPayload = await decrypt(sessionCookie);
+  const isLoggedIn = !!sessionPayload?.userId;
+
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+
+  // If trying to access an auth page while logged in, redirect to dashboard
+  if (isLoggedIn && isAuthPage) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // If session exists and user tries to access auth pages, redirect to dashboard
-  if (session && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
-      return NextResponse.redirect(new URL('/', request.url));
+  // If trying to access a protected page while not logged in, redirect to login
+  if (!isLoggedIn && !isAuthPage) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
