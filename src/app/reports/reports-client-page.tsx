@@ -9,15 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Download, BarChart2, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { fetchReportById } from "@/lib/queries";
-import type { Report, ReportFinding } from "@/lib/definitions";
+import { getReportDetails } from "./actions";
+import type { Report, DetailedReport } from "@/lib/definitions";
 
 const statusVariant = {
   'Finalized': 'default',
   'Draft': 'secondary',
 } as const;
-
-type DetailedReport = Report & { findings: ReportFinding[] };
 
 export default function ReportsClientPage({ reports }: { reports: Report[] }) {
   const [selectedReport, setSelectedReport] = useState<DetailedReport | null>(null);
@@ -36,7 +34,7 @@ export default function ReportsClientPage({ reports }: { reports: Report[] }) {
     setIsLoading(true);
     setSelectedReport(null);
     try {
-      const reportDetails = await fetchReportById(reportId);
+      const reportDetails = await getReportDetails(reportId);
       if (reportDetails) {
         setSelectedReport(reportDetails);
       } else {
