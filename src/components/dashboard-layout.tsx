@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Card } from './ui/card';
+import { Button } from './ui/button';
 
 type MenuItem = {
   href: string;
@@ -80,30 +81,32 @@ export function DashboardLayout({ user, children }: { user: User, children: Reac
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <Card className="m-2 bg-sidebar-border/60 border-sidebar-border">
-          <SidebarHeader>
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={`https://placehold.co/40x40.png?text=${user.name.charAt(0)}`} alt={user.name} data-ai-hint="user avatar" />
-                <AvatarFallback>{user.name.split(' ').map(n => n[0]).slice(0,2).join('')}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col text-sm">
-                <span className="font-semibold text-sidebar-foreground">{user.name}</span>
-                <span className="text-sidebar-foreground/70">{user.email}</span>
-              </div>
-            </div>
-          </SidebarHeader>
-          <SidebarMenu>
-              <SidebarMenuItem>
-                <form action={logout}>
-                  <SidebarMenuButton className='w-full'>
-                    <LogOut />
-                    <span>Logout</span>
-                  </SidebarMenuButton>
-                </form>
-              </SidebarMenuItem>
-          </SidebarMenu>
-        </Card>
+        <SidebarHeader className="mt-auto">
+            <Card className="m-2 bg-sidebar-border/60 border-sidebar-border">
+              <SidebarHeader>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={`https://placehold.co/40x40.png?text=${user.name.charAt(0)}`} alt={user.name} data-ai-hint="user avatar" />
+                    <AvatarFallback>{user.name.split(' ').map(n => n[0]).slice(0,2).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col text-sm">
+                    <span className="font-semibold text-sidebar-foreground">{user.name}</span>
+                    <span className="text-sidebar-foreground/70">{user.email}</span>
+                  </div>
+                </div>
+              </SidebarHeader>
+              <SidebarMenu>
+                  <SidebarMenuItem>
+                    <form action={logout} className="w-full">
+                      <Button type="submit" variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                        <LogOut />
+                        <span>Logout</span>
+                      </Button>
+                    </form>
+                  </SidebarMenuItem>
+              </SidebarMenu>
+            </Card>
+        </SidebarHeader>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">

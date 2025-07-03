@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import type { User } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,12 +28,13 @@ const checklistFormSchema = z.object({
     category: z.string().min(3, { message: "Category must be at least 3 characters." }),
 });
 
-export default function ChecklistClientPage({ checklists }: { checklists: Checklist[] }) {
+export default function ChecklistClientPage({ checklists, user }: { checklists: Checklist[], user: User }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [activeChecklist, setActiveChecklist] = useState<Checklist | null>(null);
   
   const { toast } = useToast();
+  const canModify = user.role === 'ADMIN' || user.role === 'AUDITOR';
 
   const form = useForm<z.infer<typeof checklistFormSchema>>({
     resolver: zodResolver(checklistFormSchema),
@@ -124,10 +126,12 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Checklist Management</h2>
         <div className="flex items-center space-x-2">
-          <Button onClick={handleCreate}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create New Checklist
-          </Button>
+          {canModify && (
+            <Button onClick={handleCreate}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create New Checklist
+            </Button>
+          )}
         </div>
       </div>
       <Card>
@@ -139,47 +143,49 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Checklist ID</TableHead>
                 <TableHead>Checklist Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Last Updated</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
+                {canModify && (
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {checklists.map((checklist) => (
                 <TableRow key={checklist.id}>
-                  <TableCell className="font-medium">{checklist.id}</TableCell>
-                  <TableCell>{checklist.name}</TableCell>
+                  <TableCell className="font-medium">{checklist.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{checklist.category}</Badge>
                   </TableCell>
                   <TableCell>{format(new Date(checklist.last_updated), "PPP")}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(checklist)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(checklist.id)}>
-                          <Copy className="mr-2 h-4 w-4" /> Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(checklist)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  {canModify && (
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEdit(checklist)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(checklist.id)}>
+                            <Copy className="mr-2 h-4 w-4" /> Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(checklist)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

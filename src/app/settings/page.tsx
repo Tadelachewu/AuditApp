@@ -1,9 +1,13 @@
 import { getSession } from "@/lib/session";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import SettingsForm from "./settings-form";
+import { redirect } from "next/navigation";
 
 export default async function SettingsPage() {
   const user = await getSession();
+  if (!user) {
+    redirect('/login');
+  }
 
   return (
     <DashboardLayout user={user}>
