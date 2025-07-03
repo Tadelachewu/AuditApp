@@ -1,13 +1,17 @@
-import 'dotenv/config';
-import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client'
 
-if (!process.env.POSTGRES_URL) {
-  throw new Error('POSTGRES_URL environment variable is not set');
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    // log: ['query'],
+  })
 }
 
-export const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: process.env.POSTGRES_URL.includes('sslmode=disable') 
-    ? false 
-    : { rejectUnauthorized: false },
-});
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>
+}
+
+const prisma = globalThis.prisma ?? prismaClientSingleton()
+
+export default prisma
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma

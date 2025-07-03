@@ -1,108 +1,124 @@
+
 import 'dotenv/config';
-import { Pool } from 'pg';
+import prisma from '../src/lib/db';
 import { audits, checklists, documents, reports } from '../src/lib/data';
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: process.env.POSTGRES_URL?.includes('sslmode=disable') 
-    ? false 
-    : { rejectUnauthorized: false },
-});
-
-async function seedDatabase() {
-  let client;
-  try {
-    client = await pool.connect();
-    console.log("✅ Database connection established.");
-
-    // Clear existing data
-    await client.query('TRUNCATE report_findings, reports, documents, checklists, audits, activities RESTART IDENTITY');
-    console.log("🧹 Cleared existing data.");
-
-    // Seed Audits
-    console.log("🌱 Seeding audits...");
-    for (const audit of audits) {
-      await client.query(
-        `INSERT INTO audits (id, name, auditor, start_date, end_date, status)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [audit.id, audit.name, audit.auditor, audit.startDate, audit.endDate, audit.status]
-      );
-    }
-    console.log(`✅ Seeded ${audits.length} audits.`);
-
-    // Seed Checklists
-    console.log("🌱 Seeding checklists...");
-    for (const checklist of checklists) {
-      await client.query(
-        `INSERT INTO checklists (id, name, category, last_updated)
-         VALUES ($1, $2, $3, $4)`,
-        [checklist.id, checklist.name, checklist.category, checklist.lastUpdated]
-      );
-    }
-    console.log(`✅ Seeded ${checklists.length} checklists.`);
-    
-    // Seed Documents
-    console.log("🌱 Seeding documents...");
-    for (const doc of documents) {
-        await client.query(
-          `INSERT INTO documents (id, title, type, version, upload_date)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [doc.id, doc.title, doc.type, doc.version, doc.uploadDate]
-        );
-    }
-    console.log(`✅ Seeded ${documents.length} documents.`);
-
-    // Seed Reports and Findings
-    console.log("🌱 Seeding reports and findings...");
-    for (const report of reports) {
-      const insertedReport = await client.query(
-        `INSERT INTO reports (id, audit_id, title, generated_by, date, status, summary, compliance_score, compliance_details)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id`,
-        [report.id, report.auditId, report.title, report.generatedBy, report.date, report.status, report.summary, report.compliance?.score, report.compliance?.details]
-      );
-      const reportId = insertedReport.rows[0].id;
-
-      if (report.findings && report.findings.length > 0) {
-        for (const finding of report.findings) {
-          await client.query(
-            `INSERT INTO report_findings (report_id, title, recommendation)
-             VALUES ($1, $2, $3)`,
-            [reportId, finding.title, finding.recommendation]
-          );
-        }
-      }
-    }
-    console.log(`✅ Seeded ${reports.length} reports with their findings.`);
-
-    // Seed Activities (from all other data)
-    console.log("🌱 Seeding activities...");
-    const allActivities = [
-      ...audits.map(a => ({ type: 'Audit' as const, date: a.startDate, description: `Audit "${a.name}" scheduled.` })),
-      ...checklists.map(c => ({ type: 'Checklist' as const, date: c.lastUpdated, description: `Checklist "${c.name}" updated.` })),
-      ...reports.map(r => ({ type: 'Report' as const, date: r.date, description: `Report "${r.title}" was ${r.status.toLowerCase()}.` })),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    for (const activity of allActivities) {
-      await client.query(
-        `INSERT INTO activities (type, date, description) VALUES ($1, $2, $3)`,
-        [activity.type, activity.date, activity.description]
-      );
-    }
-    console.log(`✅ Seeded ${allActivities.length} activities.`);
-
-    console.log("\n🎉 Database seeding complete!");
-
-  } catch (error) {
-    console.error('❌ Error seeding database:', error);
-    process.exit(1);
-  } finally {
-    if (client) {
-      await client.release();
-    }
-    await pool.end();
-    console.log("🏁 Database connection closed.");
-  }
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ Refusing to run seed script in a production environment.');
+  console.error('This script is intended for development and testing purposes only.');
+  process.exit(1);
 }
 
-seedDatabase();
+async function main() {
+  console.log('🌱 Starting database seeding...');
+
+  await prisma.$transaction(async (tx) => {
+    console.log("Upserting audits...");
+    for (const audit of audits) {
+      await tx.audit.upsert({
+        where: { id: audit.id },
+        update: {
+          ...audit,
+          startDate: new Date(audit.startDate),
+          endDate: new Date(audit.endDate),
+        },
+        create: {
+          ...audit,
+          startDate: new Date(audit.startDate),
+          endDate: new Date(audit.endDate),
+        },
+      });
+    }
+    console.log(`✅ Audits seeding complete.`);
+
+    console.log("Upserting checklists...");
+    for (const checklist of checklists) {
+      await tx.checklist.upsert({
+        where: { id: checklist.id },
+        update: {
+          ...checklist,
+          lastUpdated: new Date(checklist.lastUpdated)
+        },
+        create: {
+          ...checklist,
+          lastUpdated: new Date(checklist.lastUpdated)
+        },
+      });
+    }
+    console.log(`✅ Checklists seeding complete.`);
+
+    console.log("Upserting documents...");
+    for (const doc of documents) {
+        await tx.document.upsert({
+            where: { id: doc.id },
+            update: {
+                ...doc,
+                uploadDate: new Date(doc.uploadDate)
+            },
+            create: {
+                ...doc,
+                uploadDate: new Date(doc.uploadDate)
+            },
+        });
+    }
+    console.log(`✅ Documents seeding complete.`);
+    
+    console.log("Upserting reports and findings...");
+    for (const report of reports) {
+      const { findings, ...reportData } = report;
+      await tx.report.upsert({
+        where: { id: reportData.id },
+        update: {
+            ...reportData,
+            date: new Date(reportData.date),
+            complianceScore: report.compliance?.score ?? null,
+            complianceDetails: report.compliance?.details ?? null,
+        },
+        create: {
+          ...reportData,
+          date: new Date(reportData.date),
+          complianceScore: report.compliance?.score ?? null,
+          complianceDetails: report.compliance?.details ?? null,
+        },
+      });
+
+      if (findings && findings.length > 0) {
+        // Delete existing findings and create new ones to ensure data matches seed file
+        await tx.reportFinding.deleteMany({ where: { reportId: report.id } });
+        await tx.reportFinding.createMany({
+          data: findings.map(finding => ({
+            reportId: report.id,
+            title: finding.title,
+            recommendation: finding.recommendation,
+          })),
+        });
+      }
+    }
+    console.log(`✅ Reports and findings seeding complete.`);
+
+    console.log("🌱 Clearing and re-seeding activities table...");
+    await tx.activity.deleteMany({});
+    const allActivities = [
+      ...audits.map(a => ({ type: 'Audit' as const, date: new Date(a.startDate), description: `Audit "${a.name}" scheduled.` })),
+      ...checklists.map(c => ({ type: 'Checklist' as const, date: new Date(c.lastUpdated), description: `Checklist "${c.name}" updated.` })),
+      ...reports.map(r => ({ type: 'Report' as const, date: new Date(r.date), description: `Report "${r.title}" was ${r.status.toLowerCase()}.` })),
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    await tx.activity.createMany({
+        data: allActivities,
+    });
+    console.log(`✅ Seeded ${allActivities.length} activities.`);
+  });
+  
+  console.log('\n🎉 Database seeding complete!');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Error during seeding:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    console.log('🏁 Database connection closed.');
+  });

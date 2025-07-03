@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { pool } from "@/lib/db";
+import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { format } from 'date-fns';
 
@@ -41,25 +41,29 @@ export async function createAudit(prevState: State, formData: FormData) {
   }
 
   const { name, auditor, startDate, endDate } = validatedFields.data;
-  const startDateString = format(startDate, "yyyy-MM-dd");
-  const endDateString = format(endDate, "yyyy-MM-dd");
   const id = `AUD-${String(Math.floor(Math.random() * 900) + 100)}`; // Temp ID generation
   const status = 'Scheduled';
 
   try {
-    await pool.query(
-        `INSERT INTO audits (id, name, auditor, start_date, end_date, status)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [id, name, auditor, startDateString, endDateString, status]
-    );
-
-    // Also add to activities log
-    const description = `Audit "${name}" scheduled.`;
-    await pool.query(
-      `INSERT INTO activities (type, date, description) VALUES ($1, $2, $3)`,
-      ['Audit', new Date(), description]
-    );
-
+    await prisma.$transaction([
+      prisma.audit.create({
+        data: {
+          id,
+          name,
+          auditor,
+          startDate,
+          endDate,
+          status,
+        },
+      }),
+      prisma.activity.create({
+        data: {
+          type: 'Audit',
+          date: new Date(),
+          description: `Audit "${name}" scheduled.`,
+        },
+      }),
+    ]);
   } catch (error) {
     console.error(error);
     return {
