@@ -2,11 +2,10 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider     = "prisma-client-js"
-  // The 'binary' engine type is needed for the Vercel deployment environment.
-  // The 'library' engine type is needed for the local development environment.
-  // We use an environment variable to switch between them.
-  engineType   = "library"
+  provider   = "prisma-client-js"
+  // The `engineType` is set to `library` to use the JS-based Prisma engine,
+  // which is more portable and avoids issues with missing system libraries.
+  engineType = "library"
 }
 
 datasource db {
@@ -26,102 +25,90 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-enum Role {
-  ADMIN
-  AUDITOR
-  MANAGER
-}
-
 model Audit {
   id        String    @id @default(cuid())
   name      String
-  auditor   User      @relation(fields: [auditorId], references: [id])
   auditorId String
+  auditor   User      @relation(fields: [auditorId], references: [id])
   startDate DateTime
   endDate   DateTime
-  status    String // e.g., 'Scheduled', 'In Progress', 'Completed'
-  scope     String    @default("General")
-  riskLevel RiskLevel @default(MEDIUM)
+  status    String    @default("Scheduled") // e.g., "Scheduled", "In Progress", "Completed"
+  scope     String
+  riskLevel RiskLevel
   reports   Report[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-enum RiskLevel {
-  HIGH
-  MEDIUM
-  LOW
 }
 
 model Checklist {
   id          String   @id @default(cuid())
   name        String
   category    String
-  lastUpdated DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  lastUpdated DateTime @updatedAt
 }
 
 model Document {
-  id             String          @id @default(cuid())
-  title          String
-  type           String // e.g., 'Policy', 'Procedure', 'Evidence'
-  version        String
-  uploadDate     DateTime
-  reportFindings ReportFinding[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id         String   @id @default(cuid())
+  title      String
+  type       String   // e.g., "Policy", "Procedure", "Evidence"
+  version    String   @default("v1.0")
+  uploadDate DateTime @default(now())
 }
 
 model Report {
   id                String          @id @default(cuid())
-  audit             Audit           @relation(fields: [auditId], references: [id], onDelete: Cascade)
   auditId           String
+  audit             Audit           @relation(fields: [auditId], references: [id])
   title             String
-  generatedBy       User            @relation(fields: [generatedById], references: [id])
   generatedById     String
-  date              DateTime
-  status            String // e.g., 'Draft', 'Finalized'
+  generatedBy       User            @relation(fields: [generatedById], references: [id])
+  date              DateTime        @default(now())
+  status            String          @default("Draft") // e.g., "Draft", "Finalized"
   summary           String?
-  complianceScore   Float?
+  complianceScore   Int?
   complianceDetails String?
   findings          ReportFinding[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
 }
 
 model ReportFinding {
-  id             String            @id @default(cuid())
-  report         Report            @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id             String          @id @default(cuid())
   reportId       String
+  report         Report          @relation(fields: [reportId], references: [id])
   title          String
   recommendation String
-  riskRating     FindingRiskRating @default(MEDIUM)
-  status         FindingStatus     @default(OPEN)
-  owner          String // e.g., 'IT Department', 'John Doe'
-  evidence       Document[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  riskRating     FindingRiskRating
+  status         FindingStatus
+  owner          String
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  type        String   // "Audit", "Checklist", "Report"
+  date        DateTime
+  description String
+  createdAt   DateTime @default(now())
+}
+
+
+enum Role {
+  ADMIN
+  AUDITOR
+  MANAGER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum FindingRiskRating {
-  CRITICAL
-  HIGH
-  MEDIUM
   LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum FindingStatus {
   OPEN
   IN_PROGRESS
   REMEDIATED
-}
-
-model Activity {
-  id          Int      @id @default(autoincrement())
-  type        String // e.g., 'Audit', 'Checklist', 'Report'
-  date        DateTime
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
