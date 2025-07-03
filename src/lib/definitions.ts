@@ -46,6 +46,10 @@ export type Report = {
   findings?: ReportFinding[];
 };
 
+export type DetailedReport = Report & {
+  findings: ReportFinding[];
+};
+
 export type Activity = {
     id: number;
     type: 'Audit' | 'Checklist' | 'Report';

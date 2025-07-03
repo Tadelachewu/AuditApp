@@ -1,11 +1,10 @@
 import prisma from './db';
 import { unstable_noStore as noStore } from 'next/cache';
-import type { Audit, Checklist, Document, Report, ReportFinding, Activity, User } from './definitions';
+import type { Audit, Checklist, Document, Report, Activity, User, DetailedReport } from './definitions';
 import { format } from 'date-fns';
 
 type AuditWithUser = Audit & { auditor: { name: string }};
 type ReportWithUser = Report & { generated_by: { name: string }};
-type ReportWithFindingsAndUser = Report & { findings: ReportFinding[], generated_by: { name: string } };
 
 
 // --------- AUDITS ---------
@@ -97,40 +96,6 @@ export async function fetchReports(): Promise<ReportWithUser[]> {
     return [];
   }
 }
-
-export async function fetchReportById(id: string): Promise<ReportWithFindingsAndUser | null> {
-  noStore();
-  try {
-    const report = await prisma.report.findUnique({
-      where: { id },
-      include: {
-        findings: true,
-        generatedBy: {
-          select: { name: true }
-        }
-      },
-    });
-
-    if (!report) {
-      return null;
-    }
-
-    return {
-      ...report,
-      date: format(new Date(report.date), 'yyyy-MM-dd'),
-      compliance_score: report.complianceScore,
-      compliance_details: report.complianceDetails,
-      generated_by: report.generatedBy,
-      findings: report.findings.map(finding => ({
-        ...finding,
-      })),
-    };
-  } catch (error) {
-    console.error('Database Error:', error);
-    return null;
-  }
-}
-
 
 // --------- DASHBOARD ---------
 export async function fetchCardData() {
