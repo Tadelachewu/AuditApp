@@ -119,9 +119,33 @@ export default function DocumentsClientPage({ documents }: { documents: Document
   };
 
   const handleDownload = (docId: string) => {
+    const doc = documents.find((d) => d.id === docId);
+    if (!doc) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Document not found.",
+      });
+      return;
+    }
+
+    // This is a mock download. In a real app, this would fetch a file from a server.
+    const fileContent = `This is a simulated document file for "${doc.title}".\n\nID: ${doc.id}\nType: ${doc.type}\nVersion: ${doc.version}\nUpload Date: ${doc.upload_date}`;
+    const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${doc.title.replace(/ /g, "_")}.txt`;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     toast({
-      title: "Action Triggered",
-      description: `Download on document ${docId} is not implemented.`,
+      title: "Download Started",
+      description: `Downloading a simulated file for "${doc.title}".`,
     });
   };
 
