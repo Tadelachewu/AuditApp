@@ -1,37 +1,28 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import prisma from './db';
 import { encrypt, decrypt } from './session-crypto';
-import type { User, Role } from '@prisma/client';
+import type { User as PrismaUser } from '@prisma/client';
 import { cache } from 'react';
+import type { User } from './definitions';
 
 export const getSession = cache(async (): Promise<User | null> => {
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) return null;
 
-  const decryptedSession = await decrypt(sessionCookie);
-  if (!decryptedSession?.userId) return null;
-
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: decryptedSession.userId },
-    });
-    
-    if (!user) return null;
-
-    // Return user object without the password hash
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-
-  } catch (error) {
-    console.error("Failed to fetch user for session:", error);
-    return null;
-  }
+  // Decrypt the token and get the user object directly. No DB call.
+  const session = await decrypt(sessionCookie);
+  
+  // The type from decrypt is Omit<PrismaUser, 'password'>, which matches `User` from definitions.
+  return session;
 });
 
-export async function createSession(user: User) {
+export async function createSession(user: PrismaUser) {
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now
-  const session = await encrypt({ userId: user.id, role: user.role, expires });
+  
+  // Omit the password before encrypting
+  const { password, ...userWithoutPassword } = user;
+  
+  const session = await encrypt({ user: userWithoutPassword, expires });
 
   cookies().set('session', session, {
     expires,
