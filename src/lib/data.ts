@@ -26,7 +26,7 @@ export const audits = [
   export const reports = [
     { 
       id: 'RPT-2024-001', 
-      auditId: 'AUD-003', 
+      audit_id: 'AUD-003', 
       title: 'Q2 Branch Operations Review', 
       generatedBy: 'Charlie Brown', 
       date: '2024-07-12', 
@@ -49,7 +49,7 @@ export const audits = [
     },
     { 
       id: 'RPT-2024-002', 
-      auditId: 'AUD-005', 
+      audit_id: 'AUD-005', 
       title: 'Q2 Customer Data Privacy Audit', 
       generatedBy: 'Alice Johnson', 
       date: '2024-06-15', 
@@ -63,7 +63,7 @@ export const audits = [
     },
     { 
       id: 'RPT-2024-003', 
-      auditId: 'AUD-001', 
+      audit_id: 'AUD-001', 
       title: 'Q3 Financial Statement Audit', 
       generatedBy: 'Alice Johnson', 
       date: '2024-08-16', 
