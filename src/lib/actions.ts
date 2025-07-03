@@ -4,7 +4,8 @@ import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import bcrypt from 'bcryptjs';
-import { createSession, deleteSession } from '@/lib/session';
+// Session management is temporarily disabled.
+// import { createSession, deleteSession } from '@/lib/session';
 import { redirect } from "next/navigation";
 
 // --- AUTH ACTIONS ---
@@ -15,6 +16,7 @@ const loginSchema = z.object({
 });
 
 export async function login(prevState: any, formData: FormData) {
+  // NOTE: Auth is disabled. This function will not be called.
   const validatedFields = loginSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -37,8 +39,7 @@ export async function login(prevState: any, formData: FormData) {
       return { message: "Invalid credentials." };
     }
 
-    await createSession(user);
-    // Redirect handled by middleware/page logic after session is set
+    // await createSession(user);
 
   } catch (error) {
     console.error(error);
@@ -54,6 +55,7 @@ const registerSchema = z.object({
 });
 
 export async function register(prevState: any, formData: FormData) {
+    // NOTE: Auth is disabled. This function will not be called.
   const validatedFields = registerSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -82,7 +84,7 @@ export async function register(prevState: any, formData: FormData) {
       },
     });
 
-    await createSession(user);
+    // await createSession(user);
 
   } catch (error) {
     console.error(error);
@@ -93,6 +95,6 @@ export async function register(prevState: any, formData: FormData) {
 
 
 export async function logout() {
-  await deleteSession();
-  redirect('/login');
+  // await deleteSession();
+  // No redirect needed as auth is disabled.
 }
