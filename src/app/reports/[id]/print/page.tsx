@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import PrintTrigger from "./print-trigger";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ReportPrintPage({ params }: { params: { id: string } }) {
   const report = await getReportDetails(params.id);
 
