@@ -5,14 +5,14 @@ import PrintTrigger from "./print-trigger";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ReportPrintPage({ params }: { params: { id: string } }) {
-  const report = await getReportDetails(params.id);
+export default async function ReportPrintPage({ params: { id } }: { params: { id: string } }) {
+  const report = await getReportDetails(id);
 
   if (!report) {
     return (
       <div className="p-10 text-center font-sans">
         <h1 className="text-2xl font-bold">Report Not Found</h1>
-        <p>The report you are looking for with ID "{params.id}" does not exist.</p>
+        <p>The report you are looking for with ID "{id}" does not exist.</p>
       </div>
     );
   }
