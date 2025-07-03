@@ -20,6 +20,7 @@ export type State = {
     type?: string[];
   };
   message?: string | null;
+  success?: boolean;
 };
 
 
@@ -32,7 +33,8 @@ export async function createDocument(prevState: State, formData: FormData) {
     if (!validatedFields.success) {
         return { 
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Failed to create document. Please check the fields." 
+            message: "Failed to create document. Please check the fields.",
+            success: false,
         };
     }
 
@@ -54,11 +56,11 @@ export async function createDocument(prevState: State, formData: FormData) {
         // Note: In a real app, file upload would be handled here.
     } catch (error) {
         console.error(error);
-        return { message: "Database Error: Failed to create document." };
+        return { message: "Database Error: Failed to create document.", success: false, };
     }
 
     revalidatePath("/documents");
-    return { message: "Successfully created document." };
+    return { message: "Successfully created document.", success: true, };
 }
 
 
@@ -73,6 +75,7 @@ export async function updateDocument(prevState: State, formData: FormData) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
             message: "Failed to update document. Please check the fields.",
+            success: false,
         };
     }
 
@@ -81,7 +84,7 @@ export async function updateDocument(prevState: State, formData: FormData) {
     try {
         const existingDoc = await prisma.document.findUnique({ where: { id }});
         if (!existingDoc) {
-            return { message: "Document not found."};
+            return { message: "Document not found.", success: false, };
         }
         // Basic version bump logic
         const versionParts = existingDoc.version.replace('v', '').split('.');
@@ -96,15 +99,16 @@ export async function updateDocument(prevState: State, formData: FormData) {
                 title, 
                 type,
                 version: newVersion,
+                uploadDate: new Date(),
             }
         });
     } catch (error) {
         console.error(error);
-        return { message: "Database Error: Failed to update document." };
+        return { message: "Database Error: Failed to update document.", success: false, };
     }
     
     revalidatePath("/documents");
-    return { message: "Successfully updated document." };
+    return { message: "Successfully updated document.", success: true, };
 }
 
 export async function duplicateDocument(id: string) {
@@ -114,7 +118,7 @@ export async function duplicateDocument(id: string) {
         });
 
         if (!original) {
-            return { message: "Document not found." };
+            return { message: "Document not found.", success: false, };
         }
         
         const newId = `DOC-${String(Math.floor(Math.random() * 9000) + 1000)}`;
@@ -131,11 +135,11 @@ export async function duplicateDocument(id: string) {
         
     } catch (error) {
         console.error(error);
-        return { message: "Database Error: Failed to duplicate document." };
+        return { message: "Database Error: Failed to duplicate document.", success: false, };
     }
 
     revalidatePath("/documents");
-    return { message: "Successfully duplicated document." };
+    return { message: "Successfully duplicated document.", success: true, };
 }
 
 export async function deleteDocument(id: string) {
@@ -145,9 +149,9 @@ export async function deleteDocument(id: string) {
         });
     } catch (error) {
         console.error(error);
-        return { message: "Database Error: Failed to delete document." };
+        return { message: "Database Error: Failed to delete document.", success: false, };
     }
 
     revalidatePath("/documents");
-    return { message: "Successfully deleted document." };
+    return { message: "Successfully deleted document.", success: true, };
 }

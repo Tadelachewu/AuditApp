@@ -66,7 +66,7 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
     const action = data.id ? updateChecklist : createChecklist;
     const result = await action({} , formData);
 
-    if (result.message?.includes("Success")) {
+    if (result.success) {
       toast({
           title: "Success!",
           description: result.message,
@@ -95,9 +95,9 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
   const handleDuplicate = async (id: string) => {
     const result = await duplicateChecklist(id);
     toast({
-        title: result.message?.includes("Success") ? "Success!" : "Error",
+        title: result.success ? "Success!" : "Error",
         description: result.message,
-        variant: result.message?.includes("Success") ? "default" : "destructive",
+        variant: result.success ? "default" : "destructive",
     });
   };
 
@@ -110,9 +110,9 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
     if (!activeChecklist) return;
     const result = await deleteChecklist(activeChecklist.id);
     toast({
-        title: result.message?.includes("Success") ? "Success!" : "Error",
+        title: result.success ? "Success!" : "Error",
         description: result.message,
-        variant: result.message?.includes("Success") ? "default" : "destructive",
+        variant: result.success ? "default" : "destructive",
     });
     setIsDeleteConfirmOpen(false);
     setActiveChecklist(null);
