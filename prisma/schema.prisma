@@ -1,46 +1,45 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider   = "prisma-client-js"
-  // This is the crucial change to fix the environment issue
-  engineType = "library"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+  // This is the key change to fix the deployment error.
+  // It tells Prisma to use the JS-based library engine, which is more portable.
+  engineType = "library"
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  name      String
+  name      String?
   password  String
   role      Role     @default(AUDITOR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  audits  Audit[]  @relation("AuditorToAudit")
-  reports Report[] @relation("GeneratorToReport")
-}
+  audits         Audit[]
+  generatedReports Report[]
 
-enum Role {
-  ADMIN
-  AUDITOR
+  @@map("users")
 }
 
 model Audit {
   id        String   @id @default(cuid())
   name      String
+  auditorId String
   startDate DateTime
   endDate   DateTime
-  status    String // 'In Progress', 'Scheduled', 'Completed'
+  status    String
 
-  auditorId String
-  auditor   User   @relation("AuditorToAudit", fields: [auditorId], references: [id], onDelete: Cascade)
+  auditor User   @relation(fields: [auditorId], references: [id])
+  report  Report?
 
-  reports Report[]
+  @@map("audits")
 }
 
 model Checklist {
@@ -48,46 +47,60 @@ model Checklist {
   name        String
   category    String
   lastUpdated DateTime
+
+  @@map("checklists")
 }
 
 model Document {
   id         String   @id @default(cuid())
   title      String
-  type       String // 'Policy', 'Procedure', 'Evidence', 'Report'
+  type       String
   version    String
   uploadDate DateTime
+
+  @@map("documents")
 }
 
 model Report {
   id                String   @id @default(cuid())
+  auditId           String   @unique
   title             String
+  generatedById     String
   date              DateTime
-  status            String // 'Finalized', 'Draft'
+  status            String
   summary           String?
-  complianceScore   Int?
+  complianceScore   Float?
   complianceDetails String?
 
-  auditId       String
-  audit         Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  generatedById String
-  generatedBy   User   @relation("GeneratorToReport", fields: [generatedById], references: [id], onDelete: Cascade)
+  audit        Audit           @relation(fields: [auditId], references: [id])
+  generatedBy  User            @relation(fields: [generatedById], references: [id])
+  findings     ReportFinding[]
 
-  findings ReportFinding[]
+  @@map("reports")
 }
 
 model ReportFinding {
   id             Int    @id @default(autoincrement())
+  reportId       String
   title          String
   recommendation String
 
-  reportId String
-  report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_findings")
 }
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String // 'Audit', 'Checklist', 'Report'
+  type        String
   date        DateTime
   description String
   createdAt   DateTime @default(now())
+
+  @@map("activities")
+}
+
+enum Role {
+  ADMIN
+  AUDITOR
 }
