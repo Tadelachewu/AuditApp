@@ -20,7 +20,8 @@ export async function deleteSession() {
 }
 
 export async function getSession(): Promise<User | null> {
-    const sessionCookie = cookies().get('session')?.value;
+    const cookieStore = cookies();
+    const sessionCookie = cookieStore.get('session')?.value;
     const payload = await decrypt(sessionCookie);
 
     if (!payload?.userId) {
