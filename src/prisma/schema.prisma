@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider      = "prisma-client-js"
-  // Generate binaries for multiple environments to ensure compatibility
-  // "native" is for your local machine, the others are for deployment
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -47,17 +41,17 @@ model Document {
 model Report {
   id                String          @id @default(cuid())
   auditId           String
+  audit             Audit           @relation(fields: [auditId], references: [id], onDelete: Cascade)
   title             String
   generatedBy       String
   date              DateTime
   status            String
   summary           String?
-  complianceScore   Int?
+  complianceScore   Float?
   complianceDetails String?
+  findings          ReportFinding[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
-  audit             Audit           @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  findings          ReportFinding[]
 
   @@index([auditId])
 }
@@ -65,18 +59,18 @@ model Report {
 model ReportFinding {
   id             Int      @id @default(autoincrement())
   reportId       String
+  report         Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
   title          String
   recommendation String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  report         Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@index([reportId])
 }
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String // "Audit", "Checklist", "Report"
+  type        String
   date        DateTime
   description String
   createdAt   DateTime @default(now())

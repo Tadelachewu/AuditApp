@@ -2,64 +2,71 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { createChecklist } from "./actions";
+import { createChecklist, type State } from "./actions";
 import type { Checklist } from "@/lib/definitions";
 
-// This component now receives props from the server component wrapper
+const checklistFormSchema = z.object({
+    name: z.string().min(3, { message: "Name must be at least 3 characters." }),
+    category: z.string().min(3, { message: "Category must be at least 3 characters." }),
+});
+
 export default function ChecklistClientPage({ checklists }: { checklists: Checklist[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newChecklistName, setNewChecklistName] = useState("");
-  const [newChecklistCategory, setNewChecklistCategory] = useState("");
-
   const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof checklistFormSchema>>({
+    resolver: zodResolver(checklistFormSchema),
+    defaultValues: {
+      name: "",
+      category: "",
+    }
+  });
+
+  const { isSubmitting } = form.formState;
+
+  const onSubmit = async (data: z.infer<typeof checklistFormSchema>) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('category', data.category);
+    
+    const result = await createChecklist({ errors: {}, message: null }, formData);
+
+    if (result.message?.includes("Success")) {
+      toast({
+          title: "Success!",
+          description: "New checklist created.",
+      });
+      form.reset();
+      setIsDialogOpen(false);
+    } else {
+      toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message || "An unknown error occurred.",
+      });
+    }
+  };
 
   const handleAction = (action: string, checklistId: string) => {
     toast({
       title: "Action Triggered",
       description: `${action} on checklist ${checklistId}`,
     });
-  };
-  
-  const handleCreateChecklist = async () => {
-    if (newChecklistName.trim() && newChecklistCategory.trim()) {
-      const formData = new FormData();
-      formData.append('name', newChecklistName);
-      formData.append('category', newChecklistCategory);
-      
-      const result = await createChecklist({}, formData);
-
-      if (result.message.includes("Success")) {
-        toast({
-            title: "Success!",
-            description: "New checklist created.",
-        });
-        setIsDialogOpen(false);
-        setNewChecklistName("");
-        setNewChecklistCategory("");
-      } else {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: result.message || "An unknown error occurred.",
-        });
-      }
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Please fill out all fields.",
-        });
-    }
   };
 
   return (
@@ -81,23 +88,42 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
                   Enter the details for the new checklist template.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input id="name" value={newChecklistName} onChange={(e) => setNewChecklistName(e.target.value)} className="col-span-3" placeholder="e.g. Quarterly Server Maintenance" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Category
-                  </Label>
-                  <Input id="category" value={newChecklistCategory} onChange={(e) => setNewChecklistCategory(e.target.value)} className="col-span-3" placeholder="e.g. IT Security" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateChecklist}>Create Checklist</Button>
-              </DialogFooter>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Checklist Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Quarterly Server Maintenance" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. IT Security" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Create Checklist
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
@@ -128,7 +154,7 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
                   <TableCell>
                     <Badge variant="outline">{checklist.category}</Badge>
                   </TableCell>
-                  <TableCell>{checklist.last_updated}</TableCell>
+                  <TableCell>{format(new Date(checklist.last_updated), "PPP")}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

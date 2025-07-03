@@ -4,19 +4,28 @@ import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-const checklistSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    category: z.string().min(1, "Category is required"),
+const checklistFormSchema = z.object({
+    name: z.string().min(3, { message: "Name must be at least 3 characters." }),
+    category: z.string().min(3, { message: "Category must be at least 3 characters." }),
 });
 
-export async function createChecklist(prevState: any, formData: FormData) {
-    const validatedFields = checklistSchema.safeParse({
+export type State = {
+  errors?: {
+    name?: string[];
+    category?: string[];
+  };
+  message?: string | null;
+};
+
+export async function createChecklist(prevState: State, formData: FormData) {
+    const validatedFields = checklistFormSchema.safeParse({
         name: formData.get("name"),
         category: formData.get("category"),
     });
 
     if (!validatedFields.success) {
         return {
+            errors: validatedFields.error.flatten().fieldErrors,
             message: "Failed to create checklist. Please check the fields.",
         };
     }
@@ -44,10 +53,16 @@ export async function createChecklist(prevState: any, formData: FormData) {
         ]);
     } catch (error) {
         console.error(error);
-        return { message: "Database Error: Failed to create checklist." };
+        return { 
+            errors: {},
+            message: "Database Error: Failed to create checklist." 
+        };
     }
 
     revalidatePath("/checklists");
     revalidatePath("/");
-    return { message: "Successfully created checklist." };
+    return { 
+        message: "Successfully created checklist.",
+        errors: {}
+    };
 }
