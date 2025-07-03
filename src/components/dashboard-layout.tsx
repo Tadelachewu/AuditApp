@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Card } from './ui/card';
-import { useToast } from '@/hooks/use-toast';
 
 type MenuItem = {
   href: string;
@@ -42,7 +41,6 @@ type MenuItem = {
 
 export function DashboardLayout({ user, children }: { user: User, children: React.ReactNode }) {
   const pathname = usePathname();
-  const { toast } = useToast();
 
   const allMenuItems: MenuItem[] = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'AUDITOR'] },
@@ -51,16 +49,10 @@ export function DashboardLayout({ user, children }: { user: User, children: Reac
     { href: '/risk-assessment', label: 'Risk Assessment', icon: AlertTriangle, roles: ['ADMIN'] },
     { href: '/reports', label: 'Reports', icon: FileText, roles: ['ADMIN', 'AUDITOR'] },
     { href: '/documents', label: 'Documents', icon: Folder, roles: ['ADMIN', 'AUDITOR'] },
+    { href: '/settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'AUDITOR'] },
   ];
 
   const menuItems = allMenuItems.filter(item => item.roles.includes(user.role));
-
-  const handleSettingsClick = () => {
-    toast({
-      title: "Settings",
-      description: "This would open a settings page or modal for the user.",
-    });
-  };
 
   return (
     <SidebarProvider>
@@ -102,12 +94,6 @@ export function DashboardLayout({ user, children }: { user: User, children: Reac
             </div>
           </SidebarHeader>
           <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleSettingsClick}>
-                  <Settings />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               <SidebarMenuItem>
                 <form action={logout}>
                   <SidebarMenuButton className='w-full'>

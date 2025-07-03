@@ -50,9 +50,10 @@ export default function ReportsClientPage({ reports }: { reports: Report[] }) {
   const handleDownload = () => {
     if (selectedReport) {
       toast({
-        title: "Downloading...",
-        description: `Preparing to download report ${selectedReport.id}.`,
+        title: "Preparing Download",
+        description: `Your report for ${selectedReport.id} is opening in a new tab.`,
       });
+      window.open(`/reports/${selectedReport.id}/print`, '_blank');
     }
   };
 
