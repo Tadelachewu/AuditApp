@@ -95,6 +95,6 @@ export async function register(prevState: any, formData: FormData) {
 
 
 export async function logout() {
-  // await deleteSession();
-  // No redirect needed as auth is disabled.
+  // Session management is currently mocked, so we just redirect.
+  redirect('/login');
 }
