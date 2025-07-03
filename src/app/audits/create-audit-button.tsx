@@ -7,8 +7,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { createAudit, type State } from "./actions";
-import { fetchAuditors } from "@/lib/queries";
+import { createAudit, type State, fetchAuditors } from "./actions";
 import type { User } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";

@@ -2,8 +2,9 @@
 
 import { z } from "zod";
 import prisma from "@/lib/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { getSession } from "@/lib/session";
+import type { User } from "@prisma/client";
 
 const auditFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -84,4 +85,31 @@ export async function createAudit(prevState: State, formData: FormData) {
     errors: {},
     success: true,
   }
+}
+
+export async function fetchAuditors(): Promise<User[]> {
+    noStore();
+    try {
+        const users = await prisma.user.findMany({
+            where: {
+                role: 'AUDITOR'
+            },
+            // Select only the fields needed on the client to avoid leaking sensitive data
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return users;
+    } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+    }
 }

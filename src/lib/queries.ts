@@ -174,21 +174,3 @@ export async function fetchRecentActivities(): Promise<Activity[]> {
         return [];
     }
 }
-
-export async function fetchAuditors(): Promise<User[]> {
-    noStore();
-    try {
-        const users = await prisma.user.findMany({
-            where: {
-                role: 'AUDITOR'
-            },
-            orderBy: {
-                name: 'asc'
-            }
-        });
-        return users;
-    } catch (error) {
-        console.error('Database Error:', error);
-        return [];
-    }
-}
