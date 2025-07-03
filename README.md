@@ -1,67 +1,79 @@
-# Firebase Studio
+# X-Audit: Audit Management for X Bank
 
-This is a NextJS starter in Firebase Studio.
+This is a Next.js application built with Firebase Studio, designed for audit management.
 
-To get started, take a look at src/app/page.tsx.
+## Running Locally in Visual Studio Code
 
-## Running Locally in VS Code
-
-To run this application on your local machine using Visual Studio Code, follow these steps.
+To run this application on your local machine using VS Code, please follow these steps.
 
 ### 1. Prerequisites
 
+Ensure you have the following installed on your system:
+
 -   [Node.js](https://nodejs.org/en) (v18 or later)
--   [npm](https://www.npmjs.com/) (usually comes with Node.js)
--   [PostgreSQL](https://www.postgresql.org/download/) running locally or a connection string to a hosted instance. A simple way to run it locally is with [Docker](https://www.docker.com/).
+-   [npm](https://www.npmjs.com/) (which comes with Node.js)
+-   [PostgreSQL](https://www.postgresql.org/download/). A simple way to run it locally is with [Docker](https://www.docker.com/).
 
 ### 2. Initial Setup
 
-1.  **Clone the repository** and open it in VS Code.
+1.  **Clone the Repository**: Open the project folder in VS Code.
 
-2.  **Install dependencies:**
+2.  **Install Dependencies**: Open the integrated terminal in VS Code (`Ctrl+` or `Cmd+`\`) and run:
     ```bash
     npm install
     ```
 
-3.  **Set up environment variables:**
-    Create a new file named `.env` in the root of your project by copying the example file:
-    ```bash
-    cp .env.example .env
-    ```
-    Now, open your new `.env` file and:
-    -   Update the `DATABASE_URL` with the connection string for your PostgreSQL database. The format is `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`.
-    -   The `SESSION_SECRET` is already filled with a secure random value. You can keep it as is.
-    -   If you want to use the AI features, you will also need to add your `GOOGLE_API_KEY`.
+3.  **Set Up Environment Variables**:
+    - Create a `.env` file in the root of the project by copying the example:
+      ```bash
+      cp .env.example .env
+      ```
+    - Open your new `.env` file and update the `DATABASE_URL` with your PostgreSQL connection string. The format is `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`. For a standard local setup, it might look like this:
+      ```
+      DATABASE_URL="postgresql://postgres:password@localhost:5432/x-audit"
+      ```
+    - The `SESSION_SECRET` is already filled with a secure value for local development.
+    - To use the AI features (like Risk Assessment), get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and add it to `.env`:
+      ```
+      GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
+      ```
 
 ### 3. Database Setup
 
-1.  **Run database migrations:** This will create all the necessary tables in your database based on the schema.
+With your `.env` file configured, set up the database:
+
+1.  **Run Database Migrations**: This command creates all the tables your app needs.
     ```bash
     npm run db:migrate:dev
     ```
-    When prompted, give your migration a name (e.g., `init`).
+    When prompted, enter a name for the migration (e.g., `initial-setup`).
 
-2.  **Seed the database:** This will populate your database with initial data (like users and sample audits) so you can log in and use the app.
+2.  **Seed the Database**: This populates your database with sample users and data so you can log in.
     ```bash
     npm run db:seed
     ```
 
 ### 4. Running the Application
 
-This project has two parts that need to run at the same time: the Next.js web application and the Genkit AI server.
+The application has two parts that need to run at the same time: the main web server and the AI server.
 
-Open two terminals in VS Code and run the following commands:
+**Open two separate terminals in VS Code.**
 
--   **In Terminal 1 (Next.js App):**
+-   **In Terminal 1 (Web App):**
     ```bash
     npm run dev
     ```
 
--   **In Terminal 2 (Genkit AI Server):**
+-   **In Terminal 2 (AI Server):**
     ```bash
     npm run genkit:watch
     ```
 
-Once both servers are running, you can open your browser and navigate to `http://localhost:9002` to see the application.
+Once both servers show they are running, open your browser and go to **`http://localhost:9002`**.
 
-You can now log in using the default credentials from the seed data (e.g., `auditor@xbank.com` with password `password123`).
+You can now log in with the seeded users:
+-   **Admin:** `admin@xbank.com`
+-   **Auditor:** `auditor@xbank.com`
+-   **Manager:** `manager@xbank.com`
+
+The password for all users is `password123`.
