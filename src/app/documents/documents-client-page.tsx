@@ -1,64 +1,128 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Download, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PlusCircle, Download, MoreHorizontal, Pencil, Copy, Trash2, Loader2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createDocument } from "./actions";
+import { useToast } from "@/hooks/use-toast";
+import { createDocument, updateDocument, duplicateDocument, deleteDocument } from "./actions";
 import type { Document } from "@/lib/definitions";
+
+const documentFormSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(3, { message: "Title must be at least 3 characters." }),
+  type: z.string().min(1, "Type is required"),
+});
 
 export default function DocumentsClientPage({ documents }: { documents: Document[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newDocTitle, setNewDocTitle] = useState("");
-  const [newDocType, setNewDocType] = useState("Evidence");
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const { toast } = useToast();
 
-  const handleAction = (action: string, docId: string) => {
+  const form = useForm<z.infer<typeof documentFormSchema>>({
+    resolver: zodResolver(documentFormSchema),
+    defaultValues: {
+      title: "",
+      type: "Evidence",
+    },
+  });
+
+  useEffect(() => {
+    if (activeDocument) {
+      form.reset({
+        id: activeDocument.id,
+        title: activeDocument.title,
+        type: activeDocument.type,
+      });
+    } else {
+      form.reset({ title: "", type: "Evidence" });
+    }
+  }, [activeDocument, form, isDialogOpen]);
+
+  const { isSubmitting } = form.formState;
+
+  const onSubmit = async (data: z.infer<typeof documentFormSchema>) => {
+    const formData = new FormData();
+    if(data.id) formData.append('id', data.id);
+    formData.append('title', data.title);
+    formData.append('type', data.type);
+    
+    // NOTE: In a real app, you would handle file uploads here.
+
+    const action = data.id ? updateDocument : createDocument;
+    const result = await action({} , formData);
+
+    if (result.message?.includes("Success")) {
+      toast({
+          title: "Success!",
+          description: result.message,
+      });
+      setIsDialogOpen(false);
+      setActiveDocument(null);
+    } else {
+      toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message || "An unknown error occurred.",
+      });
+    }
+  };
+
+  const handleCreate = () => {
+    setActiveDocument(null);
+    setIsDialogOpen(true);
+  };
+  
+  const handleEdit = (doc: Document) => {
+    setActiveDocument(doc);
+    setIsDialogOpen(true);
+  };
+
+  const handleDuplicate = async (id: string) => {
+    const result = await duplicateDocument(id);
     toast({
-      title: "Action Triggered",
-      description: `${action} on document ${docId}`,
+        title: result.message?.includes("Success") ? "Success!" : "Error",
+        description: result.message,
+        variant: result.message?.includes("Success") ? "default" : "destructive",
     });
   };
 
-  const handleUpload = async () => {
-    if (newDocTitle.trim()) {
-        const formData = new FormData();
-        formData.append("title", newDocTitle);
-        formData.append("type", newDocType);
-        
-        const result = await createDocument({}, formData);
+  const handleDelete = (doc: Document) => {
+    setActiveDocument(doc);
+    setIsDeleteConfirmOpen(true);
+  };
 
-        if(result.message.includes("Success")) {
-            toast({
-                title: "Success!",
-                description: `Document "${newDocTitle}" uploaded.`,
-            });
-            setIsDialogOpen(false);
-            setNewDocTitle("");
-            setNewDocType("Evidence");
-        } else {
-             toast({
-                variant: "destructive",
-                title: "Error",
-                description: result.message || "An unknown error occurred.",
-            });
-        }
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Please provide a title for the document.",
-        });
-    }
+  const performDelete = async () => {
+    if (!activeDocument) return;
+    const result = await deleteDocument(activeDocument.id);
+    toast({
+        title: result.message?.includes("Success") ? "Success!" : "Error",
+        description: result.message,
+        variant: result.message?.includes("Success") ? "default" : "destructive",
+    });
+    setIsDeleteConfirmOpen(false);
+    setActiveDocument(null);
+  };
+
+  const handleDownload = (docId: string) => {
+    toast({
+      title: "Action Triggered",
+      description: `Download on document ${docId} is not implemented.`,
+    });
   };
 
   return (
@@ -66,47 +130,10 @@ export default function DocumentsClientPage({ documents }: { documents: Document
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Document Management</h2>
         <div className="flex items-center space-x-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Upload Document</DialogTitle>
-                    <DialogDescription>Select a file and provide details.</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="title" className="text-right">Title</Label>
-                        <Input id="title" value={newDocTitle} onChange={e => setNewDocTitle(e.target.value)} className="col-span-3" placeholder="e.g., Q3 Firewall Logs" />
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="type" className="text-right">Type</Label>
-                        <Select value={newDocType} onValueChange={setNewDocType}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select a type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Policy">Policy</SelectItem>
-                                <SelectItem value="Procedure">Procedure</SelectItem>
-                                <SelectItem value="Evidence">Evidence</SelectItem>
-                                <SelectItem value="Report">Report</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="file" className="text-right">File</Label>
-                        <Input id="file" type="file" className="col-span-3" />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button onClick={handleUpload}>Upload</Button>
-                </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={handleCreate}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Upload Document
+          </Button>
         </div>
       </div>
       <Card>
@@ -139,7 +166,7 @@ export default function DocumentsClientPage({ documents }: { documents: Document
                   <TableCell>{doc.version}</TableCell>
                   <TableCell>{doc.upload_date}</TableCell>
                   <TableCell>
-                  <DropdownMenu>
+                    <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button aria-haspopup="true" size="icon" variant="ghost">
                           <MoreHorizontal className="h-4 w-4" />
@@ -148,12 +175,19 @@ export default function DocumentsClientPage({ documents }: { documents: Document
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleAction('Download', doc.id)}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
+                        <DropdownMenuItem onClick={() => handleDownload(doc.id)}>
+                          <Download className="mr-2 h-4 w-4" /> Download
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction('View Details', doc.id)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction('Update Version', doc.id)}>Update Version</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(doc)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(doc.id)}>
+                          <Copy className="mr-2 h-4 w-4" /> Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(doc)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -163,6 +197,91 @@ export default function DocumentsClientPage({ documents }: { documents: Document
           </Table>
         </CardContent>
       </Card>
+      
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{activeDocument ? 'Edit Document' : 'Upload Document'}</DialogTitle>
+            <DialogDescription>
+              {activeDocument ? 'Update the details for this document.' : 'Provide document details. File upload is a placeholder.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Document Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Q3 Firewall Logs" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Document Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a type" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="Policy">Policy</SelectItem>
+                            <SelectItem value="Procedure">Procedure</SelectItem>
+                            <SelectItem value="Evidence">Evidence</SelectItem>
+                            <SelectItem value="Report">Report</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <div className="space-y-2">
+                  <FormLabel>File</FormLabel>
+                  <Input id="file" type="file" className="col-span-3" disabled />
+                  <p className="text-sm text-muted-foreground">File upload functionality is not implemented in this demo.</p>
+              </div>
+
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {activeDocument ? 'Save Changes' : 'Create Record'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the document "{activeDocument?.title}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={performDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

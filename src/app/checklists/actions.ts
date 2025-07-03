@@ -9,10 +9,15 @@ const checklistFormSchema = z.object({
     category: z.string().min(3, { message: "Category must be at least 3 characters." }),
 });
 
+const updateChecklistFormSchema = checklistFormSchema.extend({
+    id: z.string().min(1, { message: "ID is required for updates." }),
+});
+
 export type State = {
   errors?: {
     name?: string[];
     category?: string[];
+    id?: string[];
   };
   message?: string | null;
 };
@@ -31,7 +36,7 @@ export async function createChecklist(prevState: State, formData: FormData) {
     }
 
     const { name, category } = validatedFields.data;
-    const id = `CHK-NEW-${String(Math.floor(Math.random() * 900) + 100)}`;
+    const id = `CHK-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
     try {
         await prisma.$transaction([
@@ -54,7 +59,6 @@ export async function createChecklist(prevState: State, formData: FormData) {
     } catch (error) {
         console.error(error);
         return { 
-            errors: {},
             message: "Database Error: Failed to create checklist." 
         };
     }
@@ -63,6 +67,80 @@ export async function createChecklist(prevState: State, formData: FormData) {
     revalidatePath("/");
     return { 
         message: "Successfully created checklist.",
-        errors: {}
     };
+}
+
+
+export async function updateChecklist(prevState: State, formData: FormData) {
+    const validatedFields = updateChecklistFormSchema.safeParse({
+        id: formData.get("id"),
+        name: formData.get("name"),
+        category: formData.get("category"),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: "Failed to update checklist. Please check the fields.",
+        };
+    }
+
+    const { id, name, category } = validatedFields.data;
+
+    try {
+        await prisma.checklist.update({
+            where: { id },
+            data: { name, category }
+        });
+    } catch (error) {
+        console.error(error);
+        return { message: "Database Error: Failed to update checklist." };
+    }
+    
+    revalidatePath("/checklists");
+    return { message: "Successfully updated checklist." };
+}
+
+export async function duplicateChecklist(id: string) {
+    try {
+        const original = await prisma.checklist.findUnique({
+            where: { id },
+        });
+
+        if (!original) {
+            return { message: "Checklist not found." };
+        }
+        
+        const newId = `CHK-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+
+        await prisma.checklist.create({
+            data: {
+                ...original,
+                id: newId,
+                name: `${original.name} (Copy)`,
+            }
+        });
+        
+    } catch (error) {
+        console.error(error);
+        return { message: "Database Error: Failed to duplicate checklist." };
+    }
+
+    revalidatePath("/checklists");
+    return { message: "Successfully duplicated checklist." };
+}
+
+export async function deleteChecklist(id: string) {
+    try {
+        await prisma.checklist.delete({
+            where: { id },
+        });
+    } catch (error) {
+        console.error(error);
+        return { message: "Database Error: Failed to delete checklist." };
+    }
+
+    revalidatePath("/checklists");
+    revalidatePath("/");
+    return { message: "Successfully deleted checklist." };
 }

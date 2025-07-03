@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,22 +11,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, MoreHorizontal, Loader2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Copy, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { createChecklist, type State } from "./actions";
+import { createChecklist, updateChecklist, duplicateChecklist, deleteChecklist } from "./actions";
 import type { Checklist } from "@/lib/definitions";
 
 const checklistFormSchema = z.object({
+    id: z.string().optional(),
     name: z.string().min(3, { message: "Name must be at least 3 characters." }),
     category: z.string().min(3, { message: "Category must be at least 3 characters." }),
 });
 
 export default function ChecklistClientPage({ checklists }: { checklists: Checklist[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [activeChecklist, setActiveChecklist] = useState<Checklist | null>(null);
+  
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof checklistFormSchema>>({
@@ -37,22 +42,37 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
     }
   });
 
+  useEffect(() => {
+    if (activeChecklist) {
+      form.reset({
+        id: activeChecklist.id,
+        name: activeChecklist.name,
+        category: activeChecklist.category,
+      });
+    } else {
+      form.reset({ name: "", category: "" });
+    }
+  }, [activeChecklist, form, isDialogOpen]);
+
+
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (data: z.infer<typeof checklistFormSchema>) => {
     const formData = new FormData();
+    if(data.id) formData.append('id', data.id);
     formData.append('name', data.name);
     formData.append('category', data.category);
     
-    const result = await createChecklist({ errors: {}, message: null }, formData);
+    const action = data.id ? updateChecklist : createChecklist;
+    const result = await action({} , formData);
 
     if (result.message?.includes("Success")) {
       toast({
           title: "Success!",
-          description: "New checklist created.",
+          description: result.message,
       });
-      form.reset();
       setIsDialogOpen(false);
+      setActiveChecklist(null);
     } else {
       toast({
           variant: "destructive",
@@ -61,71 +81,53 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
       });
     }
   };
+  
+  const handleCreate = () => {
+    setActiveChecklist(null);
+    setIsDialogOpen(true);
+  };
+  
+  const handleEdit = (checklist: Checklist) => {
+    setActiveChecklist(checklist);
+    setIsDialogOpen(true);
+  };
 
-  const handleAction = (action: string, checklistId: string) => {
+  const handleDuplicate = async (id: string) => {
+    const result = await duplicateChecklist(id);
     toast({
-      title: "Action Triggered",
-      description: `${action} on checklist ${checklistId}`,
+        title: result.message?.includes("Success") ? "Success!" : "Error",
+        description: result.message,
+        variant: result.message?.includes("Success") ? "default" : "destructive",
     });
   };
+
+  const handleDelete = (checklist: Checklist) => {
+    setActiveChecklist(checklist);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const performDelete = async () => {
+    if (!activeChecklist) return;
+    const result = await deleteChecklist(activeChecklist.id);
+    toast({
+        title: result.message?.includes("Success") ? "Success!" : "Error",
+        description: result.message,
+        variant: result.message?.includes("Success") ? "default" : "destructive",
+    });
+    setIsDeleteConfirmOpen(false);
+    setActiveChecklist(null);
+  };
+
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Checklist Management</h2>
         <div className="flex items-center space-x-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create New Checklist
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Create New Checklist</DialogTitle>
-                <DialogDescription>
-                  Enter the details for the new checklist template.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Checklist Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. Quarterly Server Maintenance" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. IT Security" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create Checklist
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={handleCreate}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create New Checklist
+          </Button>
         </div>
       </div>
       <Card>
@@ -165,9 +167,16 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleAction('Edit', checklist.id)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction('Duplicate', checklist.id)}>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction('Archive', checklist.id)}>Archive</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(checklist)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(checklist.id)}>
+                          <Copy className="mr-2 h-4 w-4" /> Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(checklist)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -177,6 +186,75 @@ export default function ChecklistClientPage({ checklists }: { checklists: Checkl
           </Table>
         </CardContent>
       </Card>
+      
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{activeChecklist ? 'Edit Checklist' : 'Create New Checklist'}</DialogTitle>
+            <DialogDescription>
+              {activeChecklist ? 'Update the details for this checklist.' : 'Enter the details for the new checklist template.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Checklist Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Quarterly Server Maintenance" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. IT Security" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {activeChecklist ? 'Save Changes' : 'Create Checklist'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the checklist "{activeChecklist?.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={performDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
