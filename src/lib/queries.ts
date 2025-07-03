@@ -10,7 +10,7 @@ export async function fetchAudits(): Promise<Audit[]> {
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch audits.');
+    return [];
   }
 }
 
@@ -22,7 +22,7 @@ export async function fetchChecklists(): Promise<Checklist[]> {
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch checklists.');
+    return [];
   }
 }
 
@@ -34,7 +34,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch documents.');
+    return [];
   }
 }
 
@@ -52,7 +52,7 @@ export async function fetchReports(): Promise<Report[]> {
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch reports.');
+    return [];
   }
 }
 
@@ -71,7 +71,7 @@ export async function fetchReportById(id: string): Promise<(Report & { findings:
     return report as Report & { findings: ReportFinding[] };
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch report.');
+    return null;
   }
 }
 
@@ -105,7 +105,12 @@ export async function fetchCardData() {
         };
     } catch (error) {
         console.error('Database Error:', error);
-        throw new Error('Failed to fetch card data.');
+        return {
+            ongoingAuditsCount: 0,
+            checklistsCount: 0,
+            openFindingsCount: 0,
+            generatedReportsCount: 0,
+        };
     }
 }
 
@@ -122,7 +127,7 @@ export async function fetchUpcomingDeadlines(): Promise<Audit[]> {
         return data.rows;
     } catch (error) {
         console.error('Database Error:', error);
-        throw new Error('Failed to fetch upcoming deadlines.');
+        return [];
     }
 }
 
@@ -138,6 +143,6 @@ export async function fetchRecentActivities(): Promise<Activity[]> {
         return data.rows;
     } catch (error) {
         console.error('Database Error:', error);
-        throw new Error('Failed to fetch recent activities.');
+        return [];
     }
 }
