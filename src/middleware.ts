@@ -14,23 +14,17 @@ export async function middleware(request: NextRequest) {
 
   // Try to get the session from the cookies.
   const sessionCookie = cookies().get('session')?.value;
-
-  // If there's no cookie, we can avoid the decryption attempt.
-  if (!sessionCookie && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', request.nextUrl));
-  }
-
   const session = sessionCookie ? await decrypt(sessionCookie) : null;
 
   // If the user is trying to access a protected route without a valid session,
   // redirect them to the login page.
-  if (isProtectedRoute && !session?.userId) {
+  if (isProtectedRoute && !session?.id) {
     return NextResponse.redirect(new URL('/login', request.nextUrl));
   }
 
   // If the user is logged in and tries to access a public route like login
   // or register, redirect them to the dashboard.
-  if (isPublicRoute && session?.userId) {
+  if (isPublicRoute && session?.id) {
     return NextResponse.redirect(new URL('/', request.nextUrl));
   }
 
