@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -25,32 +24,49 @@ import {
   Folder,
   Settings,
   LogOut,
+  type LucideIcon,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Card } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/context/user-context';
+
+// Define a type for menu items with roles
+type MenuItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  roles: Array<'admin' | 'auditor'>;
+};
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
+  const user = useUser();
 
-  const menuItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/audits', label: 'Audits', icon: CalendarDays },
-    { href: '/checklists', label: 'Checklists', icon: ClipboardCheck },
-    { href: '/risk-assessment', label: 'Risk Assessment', icon: AlertTriangle },
-    { href: '/reports', label: 'Reports', icon: FileText },
-    { href: '/documents', label: 'Documents', icon: Folder },
+  const allMenuItems: MenuItem[] = [
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'auditor'] },
+    { href: '/audits', label: 'Audits', icon: CalendarDays, roles: ['admin', 'auditor'] },
+    { href: '/checklists', label: 'Checklists', icon: ClipboardCheck, roles: ['admin', 'auditor'] },
+    // Risk Assessment is only visible to admins
+    { href: '/risk-assessment', label: 'Risk Assessment', icon: AlertTriangle, roles: ['admin'] },
+    { href: '/reports', label: 'Reports', icon: FileText, roles: ['admin', 'auditor'] },
+    { href: '/documents', label: 'Documents', icon: Folder, roles: ['admin', 'auditor'] },
   ];
+
+  // Filter menu items based on the current user's role
+  const menuItems = allMenuItems.filter(item => item.roles.includes(user.role));
 
   const handleSettingsClick = () => {
     toast({
       title: "Settings",
-      description: "Settings page is not yet implemented.",
+      description: "This would open a settings page or modal for the user.",
     });
   };
 
   const handleLogoutClick = () => {
+    // In a real app, this would trigger a sign-out flow with an authentication provider
+    // and redirect the user to a login page.
     toast({
       title: "Logout",
       description: "You have been logged out.",
@@ -87,12 +103,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <SidebarHeader>
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar" />
-                <AvatarFallback>XB</AvatarFallback>
+                <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="user avatar" />
+                <AvatarFallback>{user.name.split(' ').map(n => n[0]).slice(0,2).join('')}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col text-sm">
-                <span className="font-semibold text-sidebar-foreground">X Bank Auditor</span>
-                <span className="text-sidebar-foreground/70">auditor@xbank.com</span>
+                <span className="font-semibold text-sidebar-foreground">{user.name}</span>
+                <span className="text-sidebar-foreground/70">{user.email}</span>
               </div>
             </div>
           </SidebarHeader>
