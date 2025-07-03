@@ -3,7 +3,6 @@
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
-import { getSession } from "@/lib/session";
 import type { User } from "@prisma/client";
 import { RiskLevel } from "@prisma/client";
 
@@ -33,11 +32,6 @@ export type State = {
 };
 
 export async function createAudit(prevState: State, formData: FormData) {
-  const user = await getSession();
-  if (!user || user.role !== 'ADMIN') {
-    return { success: false, message: "Not authorized" };
-  }
-
   const validatedFields = auditFormSchema.safeParse({
     name: formData.get("name"),
     scope: formData.get("scope"),

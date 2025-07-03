@@ -8,13 +8,10 @@ type ReportWithUser = Report & { generated_by: { name: string }};
 
 
 // --------- AUDITS ---------
-export async function fetchAudits(user: User): Promise<AuditWithUser[]> {
+export async function fetchAudits(): Promise<AuditWithUser[]> {
   noStore();
   try {
-    const whereClause = user.role === 'AUDITOR' ? { auditorId: user.id } : {};
-
     const data = await prisma.audit.findMany({
-      where: whereClause,
       include: {
         auditor: {
           select: { name: true }
@@ -74,13 +71,10 @@ export async function fetchDocuments(): Promise<Document[]> {
 }
 
 // --------- REPORTS ---------
-export async function fetchReports(user: User): Promise<ReportWithUser[]> {
+export async function fetchReports(): Promise<ReportWithUser[]> {
   noStore();
   try {
-    const whereClause = user.role === 'AUDITOR' ? { audit: { auditorId: user.id } } : {};
-    
     const data = await prisma.report.findMany({
-       where: whereClause,
        include: {
         generatedBy: {
           select: { name: true }
@@ -104,18 +98,14 @@ export async function fetchReports(user: User): Promise<ReportWithUser[]> {
 }
 
 // --------- DASHBOARD ---------
-export async function fetchCardData(user: User) {
+export async function fetchCardData() {
     noStore();
     try {
-        const auditWhere = user.role === 'AUDITOR' ? { status: 'In Progress', auditorId: user.id } : { status: 'In Progress' };
-        const findingWhere = user.role === 'AUDITOR' ? { report: { status: 'Finalized', audit: { auditorId: user.id } } } : { report: { status: 'Finalized' } };
-        const reportWhere = user.role === 'AUDITOR' ? { audit: { auditorId: user.id } } : {};
-
         const [ongoingAuditsCount, checklistsCount, openFindingsCount, generatedReportsCount] = await prisma.$transaction([
-            prisma.audit.count({ where: auditWhere }),
+            prisma.audit.count({ where: { status: 'In Progress' } }),
             prisma.checklist.count(),
-            prisma.reportFinding.count({ where: findingWhere }),
-            prisma.report.count({ where: reportWhere }),
+            prisma.reportFinding.count({ where: { report: { status: 'Finalized' } } }),
+            prisma.report.count(),
         ]);
 
         return {
@@ -130,16 +120,11 @@ export async function fetchCardData(user: User) {
     }
 }
 
-export async function fetchUpcomingDeadlines(user: User): Promise<AuditWithUser[]> {
+export async function fetchUpcomingDeadlines(): Promise<AuditWithUser[]> {
     noStore();
     try {
-        const whereClause: any = { status: { not: 'Completed' } };
-        if (user.role === 'AUDITOR') {
-            whereClause.auditorId = user.id;
-        }
-
         const data = await prisma.audit.findMany({
-            where: whereClause,
+            where: { status: { not: 'Completed' } },
             include: {
                 auditor: {
                     select: { name: true }

@@ -32,7 +32,6 @@ Ensure you have the following installed on your system:
       ```
       DATABASE_URL="postgresql://postgres:password@localhost:5432/x-audit"
       ```
-    - The `SESSION_SECRET` is already filled with a secure value for local development.
     - To use the AI features (like Risk Assessment), get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and add it to `.env`:
       ```
       GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
@@ -48,7 +47,7 @@ With your `.env` file configured, set up the database:
     ```
     When prompted, enter a name for the migration (e.g., `initial-setup`).
 
-2.  **Seed the Database**: This populates your database with sample users and data so you can log in.
+2.  **Seed the Database**: This populates your database with sample data.
     ```bash
     npm run db:seed
     ```
@@ -70,10 +69,3 @@ The application has two parts that need to run at the same time: the main web se
     ```
 
 Once both servers show they are running, open your browser and go to **`http://localhost:9002`**.
-
-You can now log in with the seeded users:
--   **Admin:** `admin@xbank.com`
--   **Auditor:** `auditor@xbank.com`
--   **Manager:** `manager@xbank.com`
-
-The password for all users is `password123`.

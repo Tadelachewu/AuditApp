@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import type { User } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,13 +27,12 @@ const checklistFormSchema = z.object({
     category: z.string().min(3, { message: "Category must be at least 3 characters." }),
 });
 
-export default function ChecklistClientPage({ checklists, user }: { checklists: Checklist[], user: User }) {
+export default function ChecklistClientPage({ checklists }: { checklists: Checklist[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [activeChecklist, setActiveChecklist] = useState<Checklist | null>(null);
   
   const { toast } = useToast();
-  const canModify = user.role === 'ADMIN' || user.role === 'AUDITOR';
 
   const form = useForm<z.infer<typeof checklistFormSchema>>({
     resolver: zodResolver(checklistFormSchema),
@@ -126,12 +124,10 @@ export default function ChecklistClientPage({ checklists, user }: { checklists: 
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Checklist Management</h2>
         <div className="flex items-center space-x-2">
-          {canModify && (
             <Button onClick={handleCreate}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Create New Checklist
             </Button>
-          )}
         </div>
       </div>
       <Card>
@@ -146,11 +142,9 @@ export default function ChecklistClientPage({ checklists, user }: { checklists: 
                 <TableHead>Checklist Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Last Updated</TableHead>
-                {canModify && (
-                  <TableHead>
+                <TableHead>
                     <span className="sr-only">Actions</span>
-                  </TableHead>
-                )}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,8 +155,7 @@ export default function ChecklistClientPage({ checklists, user }: { checklists: 
                     <Badge variant="outline">{checklist.category}</Badge>
                   </TableCell>
                   <TableCell>{format(new Date(checklist.last_updated), "PPP")}</TableCell>
-                  {canModify && (
-                    <TableCell>
+                  <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -185,7 +178,6 @@ export default function ChecklistClientPage({ checklists, user }: { checklists: 
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                  )}
                 </TableRow>
               ))}
             </TableBody>
