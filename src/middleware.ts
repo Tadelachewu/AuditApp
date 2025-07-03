@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { decrypt } from '@/lib/session';
+import { decrypt } from '@/lib/session-crypto';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
