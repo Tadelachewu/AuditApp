@@ -43,13 +43,13 @@ export function DashboardLayout({ user, children }: { user: User, children: Reac
   const pathname = usePathname();
 
   const allMenuItems: MenuItem[] = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'AUDITOR'] },
-    { href: '/audits', label: 'Audits', icon: CalendarDays, roles: ['ADMIN', 'AUDITOR'] },
-    { href: '/checklists', label: 'Checklists', icon: ClipboardCheck, roles: ['ADMIN', 'AUDITOR'] },
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
+    { href: '/audits', label: 'Audits', icon: CalendarDays, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
+    { href: '/checklists', label: 'Checklists', icon: ClipboardCheck, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
     { href: '/risk-assessment', label: 'Risk Assessment', icon: AlertTriangle, roles: ['ADMIN'] },
-    { href: '/reports', label: 'Reports', icon: FileText, roles: ['ADMIN', 'AUDITOR'] },
-    { href: '/documents', label: 'Documents', icon: Folder, roles: ['ADMIN', 'AUDITOR'] },
-    { href: '/settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'AUDITOR'] },
+    { href: '/reports', label: 'Reports', icon: FileText, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
+    { href: '/documents', label: 'Documents', icon: Folder, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
+    { href: '/settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
   ];
 
   const menuItems = allMenuItems.filter(item => item.roles.includes(user.role));

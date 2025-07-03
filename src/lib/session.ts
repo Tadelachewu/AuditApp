@@ -8,11 +8,11 @@ import type { User, Role } from '@prisma/client';
  * It returns a hardcoded user. You can switch the role to see how the UI
  * changes based on user permissions.
  * 
- * TO TEST AS ADMIN:
- * 1. Comment out the "MOCK AUDITOR USER" block below.
- * 2. Uncomment the "MOCK ADMIN USER" block.
+ * TO TEST AS A SPECIFIC ROLE:
+ * 1. Comment out the other two mocked user blocks.
+ * 2. Ensure only one `mockUser` definition is active.
  * 
- * The app will then behave as if an Admin is logged in.
+ * The app will then behave as if that role is logged in.
  */
 export async function getSession(): Promise<User> {
   // --- MOCK AUDITOR USER (default role) ---
@@ -34,6 +34,19 @@ export async function getSession(): Promise<User> {
     email: 'admin@xbank.com',
     password: '', // Not needed for mock
     role: 'ADMIN' as Role,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  */
+
+  // --- MOCK MANAGER USER (uncomment to use for testing) ---
+  /*
+  const mockUser: User = {
+    id: 'clxmogjof0002108jefgh4567', // A stable fake CUID for manager
+    name: 'Manager User',
+    email: 'manager@xbank.com',
+    password: '', // Not needed for mock
+    role: 'MANAGER' as Role,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

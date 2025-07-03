@@ -5,10 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CreateAuditButton } from "./create-audit-button";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { getSession } from "@/lib/session";
+import type { RiskLevel } from "@prisma/client";
+
+const riskLevelVariant: Record<RiskLevel, 'destructive' | 'secondary' | 'outline'> = {
+  HIGH: 'destructive',
+  MEDIUM: 'secondary',
+  LOW: 'outline',
+}
 
 export default async function AuditsPage() {
   const user = await getSession();
-  const audits = await fetchAudits();
+  const audits = await fetchAudits(user);
 
   return (
     <DashboardLayout user={user}>
@@ -28,8 +35,9 @@ export default async function AuditsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Audit ID</TableHead>
                   <TableHead>Audit Name</TableHead>
+                  <TableHead>Scope</TableHead>
+                  <TableHead>Risk Level</TableHead>
                   <TableHead>Assigned Auditor</TableHead>
                   <TableHead>Start Date</TableHead>
                   <TableHead>End Date</TableHead>
@@ -39,8 +47,11 @@ export default async function AuditsPage() {
               <TableBody>
                 {audits.map((audit) => (
                   <TableRow key={audit.id}>
-                    <TableCell className="font-medium">{audit.id}</TableCell>
-                    <TableCell>{audit.name}</TableCell>
+                    <TableCell className="font-medium">{audit.name}</TableCell>
+                    <TableCell>{audit.scope}</TableCell>
+                    <TableCell>
+                      <Badge variant={riskLevelVariant[audit.riskLevel]}>{audit.riskLevel}</Badge>
+                    </TableCell>
                     <TableCell>{audit.auditor.name}</TableCell>
                     <TableCell>{audit.start_date}</TableCell>
                     <TableCell>{audit.end_date}</TableCell>

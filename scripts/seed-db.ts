@@ -40,7 +40,17 @@ async function main() {
       role: 'AUDITOR',
     },
   });
-  console.log(`✅ Created users: ${adminUser.name}, ${auditorUser.name}`);
+
+  const hashedPasswordManager = await bcrypt.hash('password123', 10);
+  const managerUser = await prisma.user.create({
+    data: {
+      email: 'manager@xbank.com',
+      name: 'Manager User',
+      password: hashedPasswordManager,
+      role: 'MANAGER',
+    },
+  });
+  console.log(`✅ Created users: ${adminUser.name}, ${auditorUser.name}, ${managerUser.name}`);
 
 
   // Create Audits
@@ -51,6 +61,8 @@ async function main() {
       startDate: new Date('2024-07-15'),
       endDate: new Date('2024-08-15'),
       status: 'In Progress',
+      scope: 'SOX Compliance',
+      riskLevel: 'HIGH',
     }
   });
 
@@ -61,6 +73,8 @@ async function main() {
       startDate: new Date('2024-08-01'),
       endDate: new Date('2024-08-31'),
       status: 'Scheduled',
+      scope: 'PCI-DSS v4.0',
+      riskLevel: 'MEDIUM',
     }
   });
   console.log('✅ Seeded audits.');
@@ -75,12 +89,15 @@ async function main() {
   console.log('✅ Seeded checklists.');
 
   // Create Documents
-  await prisma.document.createMany({
-    data: [
-        { title: 'Information Security Policy', type: 'Policy', version: 'v3.2', uploadDate: new Date('2024-01-15') },
-        { title: 'Incident Response Procedure', type: 'Procedure', version: 'v2.1', uploadDate: new Date('2024-03-22') },
-    ]
-  })
+  const doc1 = await prisma.document.create({
+    data: { title: 'Information Security Policy', type: 'Policy', version: 'v3.2', uploadDate: new Date('2024-01-15') }
+  });
+  const doc2 = await prisma.document.create({
+    data: { title: 'Incident Response Procedure', type: 'Procedure', version: 'v2.1', uploadDate: new Date('2024-03-22') },
+  });
+  const doc3 = await prisma.document.create({
+    data: { title: 'Q3 Firewall Logs', type: 'Evidence', version: 'v1.0', uploadDate: new Date('2024-07-20') },
+  });
   console.log('✅ Seeded documents.');
 
   // Create Reports
@@ -91,10 +108,33 @@ async function main() {
       generatedById: auditorUser.id,
       date: new Date(),
       status: 'Draft',
-      summary: 'Initial review of financial statements is underway.'
+      summary: 'Initial review of financial statements is underway. Several findings related to access control have been identified.'
     }
-  })
+  });
   console.log('✅ Seeded reports.');
+
+  // Create Report Findings
+  await prisma.reportFinding.createMany({
+    data: [
+      {
+        reportId: report1.id,
+        title: 'Excessive Privileges on Core Banking System',
+        recommendation: 'Implement a formal quarterly access review process for all production systems.',
+        riskRating: 'HIGH',
+        status: 'OPEN',
+        owner: 'IT Department',
+      },
+      {
+        reportId: report1.id,
+        title: 'Lack of Segregation of Duties',
+        recommendation: 'Review and update role definitions to ensure proper segregation of duties between development and deployment personnel.',
+        riskRating: 'MEDIUM',
+        status: 'IN_PROGRESS',
+        owner: 'Compliance Team',
+      }
+    ]
+  });
+  console.log('✅ Seeded report findings.');
 
 
   // Create Activities
