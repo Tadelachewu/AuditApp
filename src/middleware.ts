@@ -8,15 +8,19 @@ const publicRoutes = ['/login', '/register'];
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
-  if (isProtectedRoute) {
-    const sessionCookie = cookies().get('session')?.value;
-    const session = await decrypt(sessionCookie || '');
-    
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
+  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
+  const isPublicRoute = publicRoutes.includes(path);
+
+  const sessionCookie = cookies().get('session')?.value;
+  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+
+  if (isProtectedRoute && !session?.userId) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (isPublicRoute && session?.userId) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
