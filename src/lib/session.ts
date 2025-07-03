@@ -3,18 +3,19 @@ import type { User, Role } from '@prisma/client';
 
 /**
  * NOTE: This function is currently mocked for development to prevent a bug
- * in the Next.js development server that causes an infinite refresh loop when
- * using `cookies()`. 
+ * in the Next.js development server that causes an infinite refresh loop.
  * 
  * It returns a hardcoded user. You can switch the role to see how the UI
  * changes based on user permissions.
  * 
- * TO TEST DIFFERENT ROLES:
- * 1. Comment out the "AUDITOR" user block.
- * 2. Uncomment the "ADMIN" user block.
+ * TO TEST AS ADMIN:
+ * 1. Comment out the "MOCK AUDITOR USER" block below.
+ * 2. Uncomment the "MOCK ADMIN USER" block.
+ * 
+ * The app will then behave as if an Admin is logged in.
  */
 export async function getSession(): Promise<User> {
-  // --- MOCK AUDITOR USER (default) ---
+  // --- MOCK AUDITOR USER (default role) ---
   const mockUser: User = {
     id: 'clxmogjof0001108jabcde123', // A stable fake CUID for auditor
     name: 'Auditor User',
@@ -25,7 +26,7 @@ export async function getSession(): Promise<User> {
     updatedAt: new Date(),
   };
 
-  // --- MOCK ADMIN USER (uncomment to use) ---
+  // --- MOCK ADMIN USER (uncomment to use for testing) ---
   /*
   const mockUser: User = {
     id: 'clxmogjof0000108j9f4x5b6c', // A stable fake CUID for admin

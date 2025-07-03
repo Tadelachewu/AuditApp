@@ -5,7 +5,8 @@ import PrintTrigger from "./print-trigger";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ReportPrintPage({ params: { id } }: { params: { id: string } }) {
+export default async function ReportPrintPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const report = await getReportDetails(id);
 
   if (!report) {
