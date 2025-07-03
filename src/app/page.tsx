@@ -1,27 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Activity, ClipboardCheck, AlertTriangle, FileText, CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { audits, checklists, reports } from '@/lib/data';
 import { format } from 'date-fns';
+import { fetchCardData, fetchRecentActivities, fetchUpcomingDeadlines } from '@/lib/queries';
+import type { Activity as ActivityType } from '@/lib/definitions';
 
-export default function DashboardPage() {
-  const ongoingAuditsCount = audits.filter(a => a.status === 'In Progress').length;
-  const checklistsCount = checklists.length;
-  const highPriorityRisksCount = reports.reduce((acc, report) => acc + (report.findings?.length || 0), 0);
-  const generatedReportsCount = reports.length;
-
-  const upcomingDeadlines = audits
-    .filter(a => a.status !== 'Completed')
-    .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
-    .slice(0, 5);
+export default async function DashboardPage() {
+  const { 
+    ongoingAuditsCount,
+    checklistsCount,
+    openFindingsCount,
+    generatedReportsCount 
+  } = await fetchCardData();
   
-  const allActivities = [
-    ...audits.map(a => ({ type: 'Audit' as const, date: a.startDate, description: `Audit "${a.name}" scheduled.` })),
-    ...checklists.map(c => ({ type: 'Checklist' as const, date: c.lastUpdated, description: `Checklist "${c.name}" updated.` })),
-    ...reports.map(r => ({ type: 'Report' as const, date: r.date, description: `Report "${r.title}" was ${r.status.toLowerCase()}.` })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  const upcomingDeadlines = await fetchUpcomingDeadlines();
+  const recentActivities = await fetchRecentActivities();
   
-  const activityIcons = {
+  const activityIcons: Record<ActivityType['type'], React.ReactNode> = {
     Audit: <CalendarClock className="h-4 w-4 text-muted-foreground" />,
     Checklist: <ClipboardCheck className="h-4 w-4 text-muted-foreground" />,
     Report: <FileText className="h-4 w-4 text-muted-foreground" />,
@@ -59,7 +54,7 @@ export default function DashboardPage() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{highPriorityRisksCount}</div>
+            <div className="text-2xl font-bold">{openFindingsCount}</div>
             <p className="text-xs text-muted-foreground">Across all finalized reports</p>
           </CardContent>
         </Card>
@@ -82,8 +77,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {allActivities.map((activity, index) => (
-                <div key={index} className="flex items-start gap-4">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-start gap-4">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                     {activityIcons[activity.type]}
                   </div>
@@ -113,7 +108,7 @@ export default function DashboardPage() {
                       <p className="text-sm text-muted-foreground">{audit.auditor}</p>
                     </div>
                     <div className="text-right">
-                       <p className="text-sm">{format(new Date(audit.endDate), "dd MMM yyyy")}</p>
+                       <p className="text-sm">{format(new Date(audit.end_date), "dd MMM yyyy")}</p>
                        <Badge variant={audit.status === 'In Progress' ? 'secondary' : 'default'} className="mt-1">{audit.status}</Badge>
                     </div>
                   </div>

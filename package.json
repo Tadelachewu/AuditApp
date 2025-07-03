@@ -9,7 +9,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:setup": "tsx scripts/setup-db.ts",
+    "db:seed": "tsx scripts/seed-db.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.13.0",
@@ -46,6 +48,7 @@
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
+    "pg": "^8.12.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -57,6 +60,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.11.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "genkit-cli": "^1.13.0",

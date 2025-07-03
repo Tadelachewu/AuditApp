@@ -12,13 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { documents as initialDocuments } from "@/lib/data";
-import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { createDocument } from "./actions";
+import type { Document } from "@/lib/definitions";
 
-
-export default function DocumentsPage() {
-  const [documents, setDocuments] = useState(initialDocuments);
+export default function DocumentsClientPage({ documents }: { documents: Document[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
   const [newDocType, setNewDocType] = useState("Evidence");
@@ -31,22 +29,29 @@ export default function DocumentsPage() {
     });
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (newDocTitle.trim()) {
-        const newDocument = {
-            id: `DOC-NEW-${String(documents.length + 1).padStart(3, '0')}`,
-            title: newDocTitle,
-            type: newDocType,
-            version: 'v1.0',
-            uploadDate: format(new Date(), "yyyy-MM-dd"),
-        };
-        setDocuments([newDocument, ...documents]);
-        toast({
-            title: "Success!",
-            description: `Document "${newDocTitle}" uploaded.`,
-        });
-        setIsDialogOpen(false);
-        setNewDocTitle("");
+        const formData = new FormData();
+        formData.append("title", newDocTitle);
+        formData.append("type", newDocType);
+        
+        const result = await createDocument({}, formData);
+
+        if(result.message.includes("Success")) {
+            toast({
+                title: "Success!",
+                description: `Document "${newDocTitle}" uploaded.`,
+            });
+            setIsDialogOpen(false);
+            setNewDocTitle("");
+            setNewDocType("Evidence");
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.message || "An unknown error occurred.",
+            });
+        }
     } else {
         toast({
             variant: "destructive",
@@ -55,7 +60,6 @@ export default function DocumentsPage() {
         });
     }
   };
-
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -133,7 +137,7 @@ export default function DocumentsPage() {
                     <Badge variant="secondary">{doc.type}</Badge>
                   </TableCell>
                   <TableCell>{doc.version}</TableCell>
-                  <TableCell>{doc.uploadDate}</TableCell>
+                  <TableCell>{doc.upload_date}</TableCell>
                   <TableCell>
                   <DropdownMenu>
                       <DropdownMenuTrigger asChild>
