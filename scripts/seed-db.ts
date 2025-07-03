@@ -84,10 +84,10 @@ async function main() {
 
       if (findings && findings.length > 0) {
         // Delete existing findings and create new ones to ensure data matches seed file
-        await tx.reportFinding.deleteMany({ where: { reportId: report.id } });
+        await tx.reportFinding.deleteMany({ where: { report_id: report.id } });
         await tx.reportFinding.createMany({
           data: findings.map(finding => ({
-            reportId: report.id,
+            report_id: report.id,
             title: finding.title,
             recommendation: finding.recommendation,
           })),

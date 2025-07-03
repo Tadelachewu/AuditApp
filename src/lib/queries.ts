@@ -89,7 +89,6 @@ export async function fetchReports(): Promise<Report[]> {
       date: format(new Date(report.date), 'yyyy-MM-dd'),
       compliance_score: report.complianceScore,
       compliance_details: report.complianceDetails,
-      audit_id: report.auditId,
       generated_by: report.generatedBy,
     }));
   } catch (error) {
@@ -117,11 +116,9 @@ export async function fetchReportById(id: string): Promise<(Report & { findings:
       date: format(new Date(report.date), 'yyyy-MM-dd'),
       compliance_score: report.complianceScore,
       compliance_details: report.complianceDetails,
-      audit_id: report.auditId,
       generated_by: report.generatedBy,
       findings: report.findings.map(finding => ({
         ...finding,
-        report_id: finding.reportId,
       })),
     };
   } catch (error) {
