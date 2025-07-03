@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 import prisma from '../src/lib/db';
 import { audits, checklists, documents, reports } from '../src/lib/data';
@@ -12,60 +13,86 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   await prisma.$transaction(async (tx) => {
-    console.log("Seeding audits (skips if data exists)...");
-    await tx.audit.createMany({
-      data: audits.map(a => ({
-        ...a,
-        startDate: new Date(a.startDate),
-        endDate: new Date(a.endDate),
-      })),
-      skipDuplicates: true,
-    });
-    console.log(`✅ Audits seeding complete.`);
-
-    console.log("Seeding checklists (skips if data exists)...");
-    await tx.checklist.createMany({
-        data: checklists.map(c => ({
-            ...c,
-            lastUpdated: new Date(c.lastUpdated)
-        })),
-        skipDuplicates: true,
-    });
-    console.log(`✅ Checklists seeding complete.`);
-
-    console.log("Seeding documents (skips if data exists)...");
-    await tx.document.createMany({
-        data: documents.map(d => ({
-            ...d,
-            uploadDate: new Date(d.uploadDate)
-        })),
-        skipDuplicates: true,
-    });
-    console.log(`✅ Documents seeding complete.`);
-    
-    console.log("Seeding reports and findings (skips if data exists)...");
-    for (const report of reports) {
-      await tx.report.upsert({
-        where: { id: report.id },
-        update: {},
+    console.log("Upserting audits...");
+    for (const audit of audits) {
+      await tx.audit.upsert({
+        where: { id: audit.id },
+        update: {
+          ...audit,
+          startDate: new Date(audit.startDate),
+          endDate: new Date(audit.endDate),
+        },
         create: {
-          id: report.id,
-          auditId: report.auditId,
-          title: report.title,
-          generatedBy: report.generatedBy,
-          date: new Date(report.date),
-          status: report.status,
-          summary: report.summary,
-          complianceScore: report.compliance?.score ?? null,
-          complianceDetails: report.compliance?.details ?? null,
-          findings: {
-            create: report.findings.map(finding => ({
-              title: finding.title,
-              recommendation: finding.recommendation,
-            })),
-          },
+          ...audit,
+          startDate: new Date(audit.startDate),
+          endDate: new Date(audit.endDate),
         },
       });
+    }
+    console.log(`✅ Audits seeding complete.`);
+
+    console.log("Upserting checklists...");
+    for (const checklist of checklists) {
+      await tx.checklist.upsert({
+        where: { id: checklist.id },
+        update: {
+          ...checklist,
+          lastUpdated: new Date(checklist.lastUpdated)
+        },
+        create: {
+          ...checklist,
+          lastUpdated: new Date(checklist.lastUpdated)
+        },
+      });
+    }
+    console.log(`✅ Checklists seeding complete.`);
+
+    console.log("Upserting documents...");
+    for (const doc of documents) {
+        await tx.document.upsert({
+            where: { id: doc.id },
+            update: {
+                ...doc,
+                uploadDate: new Date(doc.uploadDate)
+            },
+            create: {
+                ...doc,
+                uploadDate: new Date(doc.uploadDate)
+            },
+        });
+    }
+    console.log(`✅ Documents seeding complete.`);
+    
+    console.log("Upserting reports and findings...");
+    for (const report of reports) {
+      const { findings, ...reportData } = report;
+      await tx.report.upsert({
+        where: { id: reportData.id },
+        update: {
+            ...reportData,
+            date: new Date(reportData.date),
+            complianceScore: report.compliance?.score ?? null,
+            complianceDetails: report.compliance?.details ?? null,
+        },
+        create: {
+          ...reportData,
+          date: new Date(reportData.date),
+          complianceScore: report.compliance?.score ?? null,
+          complianceDetails: report.compliance?.details ?? null,
+        },
+      });
+
+      if (findings && findings.length > 0) {
+        // Delete existing findings and create new ones to ensure data matches seed file
+        await tx.reportFinding.deleteMany({ where: { reportId: report.id } });
+        await tx.reportFinding.createMany({
+          data: findings.map(finding => ({
+            reportId: report.id,
+            title: finding.title,
+            recommendation: finding.recommendation,
+          })),
+        });
+      }
     }
     console.log(`✅ Reports and findings seeding complete.`);
 

@@ -1,86 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["debian-openssl-3.0.x"]
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model Audit {
-  id        String    @id
+  id        String   @id @default(cuid())
   name      String
   auditor   String
-  startDate DateTime  @map("start_date") @db.Date
-  endDate   DateTime  @map("end_date") @db.Date
+  startDate DateTime
+  endDate   DateTime
   status    String
-  reports   Report[]
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  @@map("audits")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Checklist {
-  id          String   @id
+  id          String   @id @default(cuid())
   name        String
   category    String
-  lastUpdated DateTime @map("last_updated") @db.Date
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("checklists")
+  lastUpdated DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Document {
-  id         String   @id
+  id         String   @id @default(cuid())
   title      String
   type       String
   version    String
-  uploadDate DateTime @map("upload_date") @db.Date
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  @@map("documents")
+  uploadDate DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Report {
-  id                 String          @id
-  auditId            String          @map("audit_id")
-  title              String
-  generatedBy        String          @map("generated_by")
-  date               DateTime        @db.Date
-  status             String
-  summary            String?
-  complianceScore    Int?            @map("compliance_score")
-  complianceDetails  String?         @map("compliance_details")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
-  audit              Audit           @relation(fields: [auditId], references: [id])
-  findings           ReportFinding[]
-
-  @@map("reports")
+  id                String          @id @default(cuid())
+  auditId           String
+  title             String
+  generatedBy       String
+  date              DateTime
+  status            String
+  summary           String?
+  complianceScore   Int?
+  complianceDetails String?
+  findings          ReportFinding[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }
 
 model ReportFinding {
-  id             Int      @id @default(autoincrement())
-  reportId       String   @map("report_id")
+  id             Int    @id @default(autoincrement())
+  reportId       String
+  report         Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
   title          String
   recommendation String
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  report         Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-
-  @@map("report_findings")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String
+  type        String // 'Audit', 'Checklist', 'Report'
   date        DateTime
   description String
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("activities")
+  createdAt   DateTime @default(now())
 }
