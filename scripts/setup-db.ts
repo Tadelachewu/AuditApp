@@ -1,69 +1,97 @@
-import 'dotenv/config'; // To load .env file
-import { Pool } from 'pg';
-import fs from 'fs';
-import path from 'path';
+import 'dotenv/config';
+import prisma from '../src/lib/db';
+import { audits, checklists, documents, reports } from '../src/lib/data';
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: process.env.POSTGRES_URL?.includes('sslmode=disable') 
-    ? false 
-    : { rejectUnauthorized: false },
-});
-
-async function setupDatabase() {
-  if (!process.env.POSTGRES_URL) {
-    console.error('❌ Error: POSTGRES_URL environment variable not set.');
-    console.log('Please add your full PostgreSQL connection string to the .env file and try again.');
-    process.exit(1);
-  }
-
-  let client;
-  try {
-    console.log('Connecting to the database...');
-    client = await pool.connect();
-    console.log('✅ Successfully connected.');
-
-    const schemaPath = path.join(process.cwd(), 'sql', 'schema.sql');
-    if (!fs.existsSync(schemaPath)) {
-        console.error(`❌ Error: Schema file not found at ${schemaPath}`);
-        console.log('Please ensure the `sql/schema.sql` file exists in your project root.');
-        process.exit(1);
-    }
-    console.log('Reading schema file...');
-    const schemaSQL = fs.readFileSync(schemaPath, 'utf-8');
-
-    const statements = schemaSQL.split(/;\s*$/m).filter(statement => {
-        const cleanStatement = statement.replace(/--.*$/gm, '').trim();
-        return cleanStatement.length > 0;
-    });
-
-    if (statements.length === 0) {
-        console.warn('⚠️ No SQL statements found in schema.sql. Nothing to execute.');
-        return;
-    }
-
-    console.log(`Found ${statements.length} SQL statements to execute.`);
-
-    for (const statement of statements) {
-        console.log(`Executing: ${statement.substring(0, 80).replace(/\n/g, ' ')}...`);
-        await client.query(statement);
-    }
-
-    console.log('✅ Database setup complete. All tables have been created.');
-  } catch (error) {
-    console.error('❌ Error setting up the database:', error);
-    console.log('\nPlease check the following:');
-    console.log('1. Your POSTGRES_URL in the .env file is correct.');
-    console.log('2. The database server is running and accessible.');
-    console.log('3. The user has permissions to CREATE and DROP tables.');
-    process.exit(1);
-  } finally {
-    if (client) {
-      console.log('Closing database connection.');
-      await client.release();
-    }
-    await pool.end();
-  }
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ Refusing to run seed script in a production environment.');
+  console.error('This script is intended for development and testing purposes only.');
+  process.exit(1);
 }
 
-setupDatabase();
+async function main() {
+  console.log('🌱 Starting database seeding...');
+
+  await prisma.$transaction(async (tx) => {
+    console.log("Seeding audits (skips if data exists)...");
+    await tx.audit.createMany({
+      data: audits.map(a => ({
+        ...a,
+        startDate: new Date(a.startDate),
+        endDate: new Date(a.endDate),
+      })),
+      skipDuplicates: true,
+    });
+    console.log(`✅ Audits seeding complete.`);
+
+    console.log("Seeding checklists (skips if data exists)...");
+    await tx.checklist.createMany({
+        data: checklists.map(c => ({
+            ...c,
+            lastUpdated: new Date(c.lastUpdated)
+        })),
+        skipDuplicates: true,
+    });
+    console.log(`✅ Checklists seeding complete.`);
+
+    console.log("Seeding documents (skips if data exists)...");
+    await tx.document.createMany({
+        data: documents.map(d => ({
+            ...d,
+            uploadDate: new Date(d.uploadDate)
+        })),
+        skipDuplicates: true,
+    });
+    console.log(`✅ Documents seeding complete.`);
+    
+    console.log("Seeding reports and findings (skips if data exists)...");
+    for (const report of reports) {
+      await tx.report.upsert({
+        where: { id: report.id },
+        update: {},
+        create: {
+          id: report.id,
+          auditId: report.auditId,
+          title: report.title,
+          generatedBy: report.generatedBy,
+          date: new Date(report.date),
+          status: report.status,
+          summary: report.summary,
+          complianceScore: report.compliance?.score ?? null,
+          complianceDetails: report.compliance?.details ?? null,
+          findings: {
+            create: report.findings.map(finding => ({
+              title: finding.title,
+              recommendation: finding.recommendation,
+            })),
+          },
+        },
+      });
+    }
+    console.log(`✅ Reports and findings seeding complete.`);
+
+    console.log("🌱 Clearing and re-seeding activities table...");
+    await tx.activity.deleteMany({});
+    const allActivities = [
+      ...audits.map(a => ({ type: 'Audit' as const, date: new Date(a.startDate), description: `Audit "${a.name}" scheduled.` })),
+      ...checklists.map(c => ({ type: 'Checklist' as const, date: new Date(c.lastUpdated), description: `Checklist "${c.name}" updated.` })),
+      ...reports.map(r => ({ type: 'Report' as const, date: new Date(r.date), description: `Report "${r.title}" was ${r.status.toLowerCase()}.` })),
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    await tx.activity.createMany({
+        data: allActivities,
+    });
+    console.log(`✅ Seeded ${allActivities.length} activities.`);
+  });
+  
+  console.log('\n🎉 Database seeding complete!');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Error during seeding:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    console.log('🏁 Database connection closed.');
+  });

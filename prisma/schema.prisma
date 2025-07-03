@@ -1,0 +1,86 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Audit {
+  id        String    @id
+  name      String
+  auditor   String
+  startDate DateTime  @map("start_date") @db.Date
+  endDate   DateTime  @map("end_date") @db.Date
+  status    String
+  reports   Report[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("audits")
+}
+
+model Checklist {
+  id          String   @id
+  name        String
+  category    String
+  lastUpdated DateTime @map("last_updated") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("checklists")
+}
+
+model Document {
+  id         String   @id
+  title      String
+  type       String
+  version    String
+  uploadDate DateTime @map("upload_date") @db.Date
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("documents")
+}
+
+model Report {
+  id                 String          @id
+  auditId            String          @map("audit_id")
+  title              String
+  generatedBy        String          @map("generated_by")
+  date               DateTime        @db.Date
+  status             String
+  summary            String?
+  complianceScore    Int?            @map("compliance_score")
+  complianceDetails  String?         @map("compliance_details")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  audit              Audit           @relation(fields: [auditId], references: [id])
+  findings           ReportFinding[]
+
+  @@map("reports")
+}
+
+model ReportFinding {
+  id             Int      @id @default(autoincrement())
+  reportId       String   @map("report_id")
+  title          String
+  recommendation String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  report         Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_findings")
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  type        String
+  date        DateTime
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("activities")
+}

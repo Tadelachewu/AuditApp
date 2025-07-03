@@ -1,13 +1,36 @@
-import { pool } from './db';
+import prisma from './db';
 import { unstable_noStore as noStore } from 'next/cache';
 import type { Audit, Checklist, Document, Report, ReportFinding, Activity } from './definitions';
+import { format } from 'date-fns';
+
+// Helper function to format dates in an object
+function formatDateFields<T extends { [key: string]: any }>(
+  item: T,
+  fields: (keyof T)[]
+): T {
+  const newItem = { ...item };
+  for (const field of fields) {
+    if (newItem[field]) {
+      newItem[field] = format(new Date(newItem[field]), 'yyyy-MM-dd');
+    }
+  }
+  return newItem;
+}
 
 // --------- AUDITS ---------
 export async function fetchAudits(): Promise<Audit[]> {
   noStore();
   try {
-    const data = await pool.query<Audit>('SELECT id, name, auditor, TO_CHAR(start_date, \'YYYY-MM-DD\') as start_date, TO_CHAR(end_date, \'YYYY-MM-DD\') as end_date, status FROM audits ORDER BY start_date DESC');
-    return data.rows;
+    const data = await prisma.audit.findMany({
+      orderBy: {
+        startDate: 'desc',
+      },
+    });
+    return data.map(audit => ({
+      ...audit,
+      start_date: format(new Date(audit.startDate), 'yyyy-MM-dd'),
+      end_date: format(new Date(audit.endDate), 'yyyy-MM-dd'),
+    }));
   } catch (error) {
     console.error('Database Error:', error);
     return [];
@@ -18,8 +41,15 @@ export async function fetchAudits(): Promise<Audit[]> {
 export async function fetchChecklists(): Promise<Checklist[]> {
   noStore();
   try {
-    const data = await pool.query<Checklist>('SELECT id, name, category, TO_CHAR(last_updated, \'YYYY-MM-DD\') as last_updated FROM checklists ORDER BY last_updated DESC');
-    return data.rows;
+    const data = await prisma.checklist.findMany({
+      orderBy: {
+        lastUpdated: 'desc',
+      },
+    });
+    return data.map(checklist => ({
+        ...checklist,
+        last_updated: format(new Date(checklist.lastUpdated), 'yyyy-MM-dd'),
+    }));
   } catch (error) {
     console.error('Database Error:', error);
     return [];
@@ -30,8 +60,15 @@ export async function fetchChecklists(): Promise<Checklist[]> {
 export async function fetchDocuments(): Promise<Document[]> {
   noStore();
   try {
-    const data = await pool.query<Document>('SELECT id, title, type, version, TO_CHAR(upload_date, \'YYYY-MM-DD\') as upload_date FROM documents ORDER BY upload_date DESC');
-    return data.rows;
+    const data = await prisma.document.findMany({
+      orderBy: {
+        uploadDate: 'desc',
+      },
+    });
+    return data.map(doc => ({
+        ...doc,
+        upload_date: format(new Date(doc.uploadDate), 'yyyy-MM-dd'),
+    }));
   } catch (error) {
     console.error('Database Error:', error);
     return [];
@@ -42,14 +79,19 @@ export async function fetchDocuments(): Promise<Document[]> {
 export async function fetchReports(): Promise<Report[]> {
   noStore();
   try {
-    const data = await pool.query<Report>(`
-      SELECT 
-        id, audit_id, title, generated_by, TO_CHAR(date, 'YYYY-MM-DD') as date, 
-        status, summary, compliance_score, compliance_details 
-      FROM reports 
-      ORDER BY date DESC
-    `);
-    return data.rows;
+    const data = await prisma.report.findMany({
+      orderBy: {
+        date: 'desc',
+      },
+    });
+    return data.map(report => ({
+      ...report,
+      date: format(new Date(report.date), 'yyyy-MM-dd'),
+      compliance_score: report.complianceScore,
+      compliance_details: report.complianceDetails,
+      audit_id: report.auditId,
+      generated_by: report.generatedBy,
+    }));
   } catch (error) {
     console.error('Database Error:', error);
     return [];
@@ -59,16 +101,29 @@ export async function fetchReports(): Promise<Report[]> {
 export async function fetchReportById(id: string): Promise<(Report & { findings: ReportFinding[] }) | null> {
   noStore();
   try {
-    const reportData = await pool.query<Report>('SELECT id, audit_id, title, generated_by, TO_CHAR(date, \'YYYY-MM-DD\') as date, status, summary, compliance_score, compliance_details FROM reports WHERE id = $1', [id]);
-    if (reportData.rows.length === 0) {
+    const report = await prisma.report.findUnique({
+      where: { id },
+      include: {
+        findings: true,
+      },
+    });
+
+    if (!report) {
       return null;
     }
-    const report = reportData.rows[0];
 
-    const findingsData = await pool.query<ReportFinding>('SELECT * FROM report_findings WHERE report_id = $1', [id]);
-    report.findings = findingsData.rows;
-
-    return report as Report & { findings: ReportFinding[] };
+    return {
+      ...report,
+      date: format(new Date(report.date), 'yyyy-MM-dd'),
+      compliance_score: report.complianceScore,
+      compliance_details: report.complianceDetails,
+      audit_id: report.auditId,
+      generated_by: report.generatedBy,
+      findings: report.findings.map(finding => ({
+        ...finding,
+        report_id: finding.reportId,
+      })),
+    };
   } catch (error) {
     console.error('Database Error:', error);
     return null;
@@ -80,22 +135,18 @@ export async function fetchReportById(id: string): Promise<(Report & { findings:
 export async function fetchCardData() {
     noStore();
     try {
-        const ongoingAuditsPromise = pool.query("SELECT COUNT(*) FROM audits WHERE status = 'In Progress'");
-        const checklistsPromise = pool.query("SELECT COUNT(*) FROM checklists");
-        const openFindingsPromise = pool.query("SELECT COUNT(*) FROM report_findings rf JOIN reports r ON rf.report_id = r.id WHERE r.status = 'Finalized'");
-        const generatedReportsPromise = pool.query("SELECT COUNT(*) FROM reports");
-
-        const data = await Promise.all([
-            ongoingAuditsPromise,
-            checklistsPromise,
-            openFindingsPromise,
-            generatedReportsPromise,
+        const [ongoingAuditsCount, checklistsCount, openFindingsCount, generatedReportsCount] = await prisma.$transaction([
+            prisma.audit.count({ where: { status: 'In Progress' } }),
+            prisma.checklist.count(),
+            prisma.reportFinding.count({
+                where: {
+                    report: {
+                        status: 'Finalized',
+                    }
+                }
+            }),
+            prisma.report.count(),
         ]);
-
-        const ongoingAuditsCount = Number(data[0].rows[0].count ?? '0');
-        const checklistsCount = Number(data[1].rows[0].count ?? '0');
-        const openFindingsCount = Number(data[2].rows[0].count ?? '0');
-        const generatedReportsCount = Number(data[3].rows[0].count ?? '0');
 
         return {
             ongoingAuditsCount,
@@ -105,26 +156,29 @@ export async function fetchCardData() {
         };
     } catch (error) {
         console.error('Database Error:', error);
-        return {
-            ongoingAuditsCount: 0,
-            checklistsCount: 0,
-            openFindingsCount: 0,
-            generatedReportsCount: 0,
-        };
+        throw new Error('Failed to fetch card data.');
     }
 }
 
 export async function fetchUpcomingDeadlines(): Promise<Audit[]> {
     noStore();
     try {
-        const data = await pool.query<Audit>(`
-            SELECT id, name, auditor, TO_CHAR(end_date, 'YYYY-MM-DD') as end_date, status
-            FROM audits
-            WHERE status != 'Completed'
-            ORDER BY end_date ASC
-            LIMIT 5
-        `);
-        return data.rows;
+        const data = await prisma.audit.findMany({
+            where: {
+                status: {
+                    not: 'Completed',
+                },
+            },
+            orderBy: {
+                endDate: 'asc',
+            },
+            take: 5,
+        });
+        return data.map(audit => ({
+            ...audit,
+            start_date: format(new Date(audit.startDate), 'yyyy-MM-dd'),
+            end_date: format(new Date(audit.endDate), 'yyyy-MM-dd'),
+        }));
     } catch (error) {
         console.error('Database Error:', error);
         return [];
@@ -134,13 +188,16 @@ export async function fetchUpcomingDeadlines(): Promise<Audit[]> {
 export async function fetchRecentActivities(): Promise<Activity[]> {
     noStore();
     try {
-        const data = await pool.query<Activity>(`
-            SELECT id, type, TO_CHAR(date, 'YYYY-MM-DD') as date, description
-            FROM activities
-            ORDER BY date DESC
-            LIMIT 5
-        `);
-        return data.rows;
+        const data = await prisma.activity.findMany({
+            orderBy: {
+                createdAt: 'desc',
+            },
+            take: 5,
+        });
+        return data.map(activity => ({
+            ...activity,
+            date: format(new Date(activity.date), 'yyyy-MM-dd'),
+        }));
     } catch (error) {
         console.error('Database Error:', error);
         return [];
