@@ -5,15 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CreateAuditButton } from "./create-audit-button";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { getSession } from "@/lib/session";
-import { redirect } from "next/navigation";
-
-export const dynamic = 'force-dynamic';
 
 export default async function AuditsPage() {
   const user = await getSession();
-  if (!user) {
-    redirect('/login');
-  }
   const audits = await fetchAudits();
 
   return (
