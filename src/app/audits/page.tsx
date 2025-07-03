@@ -7,15 +7,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
-
-const statusVariant = {
-  'In Progress': 'secondary',
-  'Scheduled': 'default',
-  'Completed': 'outline',
-} as const;
-
-export default async function AuditsPage() {
+export default async function AuditsPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const user = await getSession();
   if (!user) {
     redirect('/login');
@@ -57,7 +49,7 @@ export default async function AuditsPage() {
                     <TableCell>{audit.start_date}</TableCell>
                     <TableCell>{audit.end_date}</TableCell>
                     <TableCell>
-                      <Badge variant={statusVariant[audit.status as keyof typeof statusVariant] || 'default'}>
+                      <Badge variant={audit.status === 'In Progress' ? 'secondary' : audit.status === 'Scheduled' ? 'default' : 'outline'}>
                         {audit.status}
                       </Badge>
                     </TableCell>

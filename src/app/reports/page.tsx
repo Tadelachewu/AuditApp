@@ -4,9 +4,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
-
-export default async function ReportsPage() {
+export default async function ReportsPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const user = await getSession();
   if (!user) {
     redirect('/login');
