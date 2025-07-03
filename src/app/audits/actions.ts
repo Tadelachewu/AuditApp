@@ -34,8 +34,8 @@ export type State = {
 
 export async function createAudit(prevState: State, formData: FormData) {
   const user = await getSession();
-  if (!user) {
-    return { success: false, message: "Not authenticated" };
+  if (!user || user.role !== 'ADMIN') {
+    return { success: false, message: "Not authorized" };
   }
 
   const validatedFields = auditFormSchema.safeParse({
@@ -111,6 +111,7 @@ export async function fetchAuditors(): Promise<User[]> {
                 role: true,
                 createdAt: true,
                 updatedAt: true,
+                password: false // explicitly exclude password
             },
             orderBy: {
                 name: 'asc'

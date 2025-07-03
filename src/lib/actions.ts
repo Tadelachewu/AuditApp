@@ -4,9 +4,9 @@ import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import bcrypt from 'bcryptjs';
-// Session management is temporarily disabled.
-// import { createSession, deleteSession } from '@/lib/session';
+import { createSession, deleteSession } from '@/lib/session';
 import { redirect } from "next/navigation";
+import type { User } from "@prisma/client";
 
 // --- AUTH ACTIONS ---
 
@@ -16,7 +16,6 @@ const loginSchema = z.object({
 });
 
 export async function login(prevState: any, formData: FormData) {
-  // NOTE: Auth is disabled. This function will not be called.
   const validatedFields = loginSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -39,7 +38,7 @@ export async function login(prevState: any, formData: FormData) {
       return { message: "Invalid credentials." };
     }
 
-    // await createSession(user);
+    await createSession(user);
 
   } catch (error) {
     console.error(error);
@@ -55,7 +54,6 @@ const registerSchema = z.object({
 });
 
 export async function register(prevState: any, formData: FormData) {
-    // NOTE: Auth is disabled. This function will not be called.
   const validatedFields = registerSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -81,10 +79,11 @@ export async function register(prevState: any, formData: FormData) {
         email,
         password: hashedPassword,
         // Default role is AUDITOR
+        role: 'AUDITOR',
       },
     });
 
-    // await createSession(user);
+    await createSession(user);
 
   } catch (error) {
     console.error(error);
@@ -95,6 +94,6 @@ export async function register(prevState: any, formData: FormData) {
 
 
 export async function logout() {
-  // Session management is currently mocked, so we just redirect.
+  await deleteSession();
   redirect('/login');
 }

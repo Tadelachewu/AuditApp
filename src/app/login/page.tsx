@@ -27,7 +27,8 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your email below to login to your account. <br />
+            Default user passwords are `password123`.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -40,6 +41,7 @@ export default function LoginPage() {
                 name="email"
                 placeholder="m@example.com"
                 required
+                defaultValue="auditor@xbank.com"
               />
             </div>
             <div className="grid gap-2">

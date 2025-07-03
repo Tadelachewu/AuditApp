@@ -1,78 +1,46 @@
 import 'server-only';
+import { cookies } from 'next/headers';
+import prisma from './db';
+import { encrypt, decrypt } from './session-crypto';
 import type { User, Role } from '@prisma/client';
+import { cache } from 'react';
 
-/**
- * NOTE: This function is currently mocked for development to prevent a bug
- * in the Next.js development server that causes an infinite refresh loop.
- * 
- * It returns a hardcoded user. You can switch the role to see how the UI
- * changes based on user permissions.
- * 
- * TO TEST AS A SPECIFIC ROLE:
- * 1. Comment out the other two mocked user blocks.
- * 2. Ensure only one `mockUser` definition is active.
- * 
- * The app will then behave as if that role is logged in.
- */
-export async function getSession(): Promise<User> {
-  // --- MOCK AUDITOR USER (default role) ---
-  const mockUser: User = {
-    id: 'clxmogjof0001108jabcde123', // A stable fake CUID for auditor
-    name: 'Auditor User',
-    email: 'auditor@xbank.com',
-    password: '', // Not needed for mock
-    role: 'AUDITOR' as Role,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+export const getSession = cache(async (): Promise<User | null> => {
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) return null;
 
-  // --- MOCK ADMIN USER (uncomment to use for testing) ---
-  /*
-  const mockUser: User = {
-    id: 'clxmogjof0000108j9f4x5b6c', // A stable fake CUID for admin
-    name: 'Admin User',
-    email: 'admin@xbank.com',
-    password: '', // Not needed for mock
-    role: 'ADMIN' as Role,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  */
+  const decryptedSession = await decrypt(sessionCookie);
+  if (!decryptedSession?.userId) return null;
 
-  // --- MOCK MANAGER USER (uncomment to use for testing) ---
-  /*
-  const mockUser: User = {
-    id: 'clxmogjof0002108jefgh4567', // A stable fake CUID for manager
-    name: 'Manager User',
-    email: 'manager@xbank.com',
-    password: '', // Not needed for mock
-    role: 'MANAGER' as Role,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  */
-  
-  return mockUser;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: decryptedSession.userId },
+    });
+    
+    if (!user) return null;
+
+    // Return user object without the password hash
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+
+  } catch (error) {
+    console.error("Failed to fetch user for session:", error);
+    return null;
+  }
+});
+
+export async function createSession(user: User) {
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now
+  const session = await encrypt({ userId: user.id, role: user.role, expires });
+
+  cookies().set('session', session, {
+    expires,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+  });
 }
 
-// The original session creation/deletion logic is left here for future reference
-// but is not currently used.
-
-// import { cookies } from 'next/headers';
-// import prisma from './db';
-// import { encrypt, decrypt } from './session-crypto';
-
-// export async function createSession(user: User) {
-//   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now
-//   const session = await encrypt({ userId: user.id, role: user.role, expires });
-
-//   cookies().set('session', session, {
-//     expires,
-//     httpOnly: true,
-//     path: '/',
-//   });
-// }
-
-// export async function deleteSession() {
-//   cookies().delete('session');
-// }
+export async function deleteSession() {
+  cookies().delete('session');
+}

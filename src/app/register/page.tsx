@@ -27,7 +27,7 @@ export default function RegisterPage() {
         <CardHeader>
           <CardTitle className="text-xl">Sign Up</CardTitle>
           <CardDescription>
-            Enter your information to create an account
+            Enter your information to create an account. New users are assigned the 'Auditor' role by default.
           </CardDescription>
         </CardHeader>
         <CardContent>

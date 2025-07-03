@@ -6,6 +6,7 @@ import { CreateAuditButton } from "./create-audit-button";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { getSession } from "@/lib/session";
 import type { RiskLevel } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 const riskLevelVariant: Record<RiskLevel, 'destructive' | 'secondary' | 'outline'> = {
   HIGH: 'destructive',
@@ -15,6 +16,9 @@ const riskLevelVariant: Record<RiskLevel, 'destructive' | 'secondary' | 'outline
 
 export default async function AuditsPage() {
   const user = await getSession();
+  if (!user) {
+    redirect('/login');
+  }
   const audits = await fetchAudits(user);
 
   return (
@@ -23,7 +27,7 @@ export default async function AuditsPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Audit Scheduling</h2>
           <div className="flex items-center space-x-2">
-            <CreateAuditButton />
+            {user.role === 'ADMIN' && <CreateAuditButton />}
           </div>
         </div>
         <Card>

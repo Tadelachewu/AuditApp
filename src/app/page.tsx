@@ -6,9 +6,13 @@ import { fetchCardData, fetchRecentActivities, fetchUpcomingDeadlines } from '@/
 import type { Activity as ActivityType } from '@/lib/definitions';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { getSession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
   const user = await getSession();
+  if (!user) {
+    redirect('/login');
+  }
 
   const { 
     ongoingAuditsCount,
