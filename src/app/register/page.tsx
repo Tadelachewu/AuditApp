@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -31,6 +33,16 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <Alert className="mb-4">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Developer Note</AlertTitle>
+            <AlertDescription>
+              Registration is disabled while auth is mocked. To switch users, edit{" "}
+              <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold">
+                src/lib/session.ts
+              </code>.
+            </AlertDescription>
+          </Alert>
           <form action={formAction} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Full name</Label>
