@@ -28,10 +28,11 @@ To run this application on your local machine using Visual Studio Code, follow t
     ```bash
     cp .env.example .env
     ```
-    Now, open your new `.env` file and:
-    -   Update the `DATABASE_URL` with the connection string for your PostgreSQL database. The format is `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`.
-    -   The `SESSION_SECRET` is already filled with a secure random value. You can keep it as is.
-    -   If you want to use the AI features, you will also need to add your `GOOGLE_API_KEY`.
+    Now, open your new `.env` file and update the `DATABASE_URL` with the connection string for your PostgreSQL database. The format is `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`.
+
+    The `SESSION_SECRET` is already filled with a secure random value, so you can leave it as is for local development. If you plan to deploy this application to production, you should generate a new unique secret.
+
+    If you want to use the AI features, you will also need to add your `GOOGLE_API_KEY` to the `.env` file.
 
 ### 3. Database Setup
 
