@@ -1,9 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -12,23 +9,24 @@ datasource db {
 }
 
 model Audit {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   auditor   String
-  startDate DateTime
-  endDate   DateTime
+  startDate DateTime  @map("start_date")
+  endDate   DateTime  @map("end_date")
   status    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  reports   Report[]
 }
 
 model Checklist {
   id          String   @id @default(cuid())
   name        String
   category    String
-  lastUpdated DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  lastUpdated DateTime @map("last_updated")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 }
 
 model Document {
@@ -36,40 +34,45 @@ model Document {
   title      String
   type       String
   version    String
-  uploadDate DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  uploadDate DateTime @map("upload_date")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 }
 
 model Report {
-  id                String          @id @default(cuid())
-  auditId           String
-  title             String
-  generatedBy       String
-  date              DateTime
-  status            String
-  summary           String?
-  complianceScore   Int?
-  complianceDetails String?
-  findings          ReportFinding[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  auditId            String          @map("audit_id")
+  title              String
+  generatedBy        String          @map("generated_by")
+  date               DateTime
+  status             String
+  summary            String?
+  complianceScore    Int?            @map("compliance_score")
+  complianceDetails  String?         @map("compliance_details")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  audit              Audit           @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  findings           ReportFinding[]
+
+  @@index([auditId])
 }
 
 model ReportFinding {
-  id             Int    @id @default(autoincrement())
-  reportId       String
-  report         Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id             Int      @id @default(autoincrement())
+  reportId       String   @map("report_id")
   title          String
   recommendation String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  report         Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
 }
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String // 'Audit', 'Checklist', 'Report'
+  type        String
   date        DateTime
   description String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
 }
