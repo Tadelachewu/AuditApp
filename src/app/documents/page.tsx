@@ -1,29 +1,108 @@
+
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Download, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { documents as initialDocuments } from "@/lib/data";
+import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
-const documents = [
-  { id: 'DOC-POL-001', title: 'Information Security Policy', type: 'Policy', version: 'v3.2', uploadDate: '2024-01-15' },
-  { id: 'DOC-PRC-004', title: 'Incident Response Procedure', type: 'Procedure', version: 'v2.1', uploadDate: '2024-03-22' },
-  { id: 'DOC-EVD-102', title: 'Q2 Firewall Configuration Logs', type: 'Evidence', version: 'N/A', uploadDate: '2024-07-01' },
-  { id: 'DOC-RPT-034', title: 'Penetration Test Report - May 2024', type: 'Report', version: 'v1.0', uploadDate: '2024-06-05' },
-  { id: 'DOC-POL-002', title: 'Data Privacy Policy', type: 'Policy', version: 'v1.5', uploadDate: '2023-11-20' },
-];
 
 export default function DocumentsPage() {
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState("");
+  const [newDocType, setNewDocType] = useState("Evidence");
+  const { toast } = useToast();
+
+  const handleAction = (action: string, docId: string) => {
+    toast({
+      title: "Action Triggered",
+      description: `${action} on document ${docId}`,
+    });
+  };
+
+  const handleUpload = () => {
+    if (newDocTitle.trim()) {
+        const newDocument = {
+            id: `DOC-NEW-${String(documents.length + 1).padStart(3, '0')}`,
+            title: newDocTitle,
+            type: newDocType,
+            version: 'v1.0',
+            uploadDate: format(new Date(), "yyyy-MM-dd"),
+        };
+        setDocuments([newDocument, ...documents]);
+        toast({
+            title: "Success!",
+            description: `Document "${newDocTitle}" uploaded.`,
+        });
+        setIsDialogOpen(false);
+        setNewDocTitle("");
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please provide a title for the document.",
+        });
+    }
+  };
+
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Document Management</h2>
         <div className="flex items-center space-x-2">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Upload Document
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Upload Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Upload Document</DialogTitle>
+                    <DialogDescription>Select a file and provide details.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="title" className="text-right">Title</Label>
+                        <Input id="title" value={newDocTitle} onChange={e => setNewDocTitle(e.target.value)} className="col-span-3" placeholder="e.g., Q3 Firewall Logs" />
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="type" className="text-right">Type</Label>
+                        <Select value={newDocType} onValueChange={setNewDocType}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select a type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Policy">Policy</SelectItem>
+                                <SelectItem value="Procedure">Procedure</SelectItem>
+                                <SelectItem value="Evidence">Evidence</SelectItem>
+                                <SelectItem value="Report">Report</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="file" className="text-right">File</Label>
+                        <Input id="file" type="file" className="col-span-3" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleUpload}>Upload</Button>
+                </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       <Card>
@@ -65,12 +144,12 @@ export default function DocumentsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction('Download', doc.id)}>
                           <Download className="mr-2 h-4 w-4" />
                           Download
                         </DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Update Version</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction('View Details', doc.id)}>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction('Update Version', doc.id)}>Update Version</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
