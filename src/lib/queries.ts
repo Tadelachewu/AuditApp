@@ -1,27 +1,23 @@
 import prisma from './db';
 import { unstable_noStore as noStore } from 'next/cache';
-import type { Audit, Checklist, Document, Report, ReportFinding, Activity } from './definitions';
+import type { Audit, Checklist, Document, Report, ReportFinding, Activity, User } from './definitions';
 import { format } from 'date-fns';
 
-// Helper function to format dates in an object
-function formatDateFields<T extends { [key: string]: any }>(
-  item: T,
-  fields: (keyof T)[]
-): T {
-  const newItem = { ...item };
-  for (const field of fields) {
-    if (newItem[field]) {
-      newItem[field] = format(new Date(newItem[field]), 'yyyy-MM-dd');
-    }
-  }
-  return newItem;
-}
+type AuditWithUser = Audit & { auditor: { name: string }};
+type ReportWithUser = Report & { generated_by: { name: string }};
+type ReportWithFindingsAndUser = Report & { findings: ReportFinding[], generated_by: { name: string } };
+
 
 // --------- AUDITS ---------
-export async function fetchAudits(): Promise<Audit[]> {
+export async function fetchAudits(): Promise<AuditWithUser[]> {
   noStore();
   try {
     const data = await prisma.audit.findMany({
+      include: {
+        auditor: {
+          select: { name: true }
+        }
+      },
       orderBy: {
         startDate: 'desc',
       },
@@ -76,10 +72,15 @@ export async function fetchDocuments(): Promise<Document[]> {
 }
 
 // --------- REPORTS ---------
-export async function fetchReports(): Promise<Report[]> {
+export async function fetchReports(): Promise<ReportWithUser[]> {
   noStore();
   try {
     const data = await prisma.report.findMany({
+       include: {
+        generatedBy: {
+          select: { name: true }
+        }
+      },
       orderBy: {
         date: 'desc',
       },
@@ -97,13 +98,16 @@ export async function fetchReports(): Promise<Report[]> {
   }
 }
 
-export async function fetchReportById(id: string): Promise<(Report & { findings: ReportFinding[] }) | null> {
+export async function fetchReportById(id: string): Promise<ReportWithFindingsAndUser | null> {
   noStore();
   try {
     const report = await prisma.report.findUnique({
       where: { id },
       include: {
         findings: true,
+        generatedBy: {
+          select: { name: true }
+        }
       },
     });
 
@@ -157,7 +161,7 @@ export async function fetchCardData() {
     }
 }
 
-export async function fetchUpcomingDeadlines(): Promise<Audit[]> {
+export async function fetchUpcomingDeadlines(): Promise<AuditWithUser[]> {
     noStore();
     try {
         const data = await prisma.audit.findMany({
@@ -165,6 +169,11 @@ export async function fetchUpcomingDeadlines(): Promise<Audit[]> {
                 status: {
                     not: 'Completed',
                 },
+            },
+            include: {
+                auditor: {
+                    select: { name: true }
+                }
             },
             orderBy: {
                 endDate: 'asc',
@@ -195,6 +204,24 @@ export async function fetchRecentActivities(): Promise<Activity[]> {
             ...activity,
             date: format(new Date(activity.date), 'yyyy-MM-dd'),
         }));
+    } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+    }
+}
+
+export async function fetchAuditors(): Promise<User[]> {
+    noStore();
+    try {
+        const users = await prisma.user.findMany({
+            where: {
+                role: 'AUDITOR'
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return users;
     } catch (error) {
         console.error('Database Error:', error);
         return [];

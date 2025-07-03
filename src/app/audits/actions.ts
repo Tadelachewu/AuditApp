@@ -3,11 +3,11 @@
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { format } from 'date-fns';
+import { getSession } from "@/lib/session";
 
 const auditFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  auditor: z.string().min(3, "Auditor name must be at least 3 characters"),
+  auditorId: z.string().min(1, "Auditor is required"),
   startDate: z.date({ required_error: "A start date is required." }),
   endDate: z.date({ required_error: "An end date is required." }),
 }).refine((data) => data.endDate > data.startDate, {
@@ -18,7 +18,7 @@ const auditFormSchema = z.object({
 export type State = {
   errors?: {
     name?: string[];
-    auditor?: string[];
+    auditorId?: string[];
     startDate?: string[];
     endDate?: string[];
   };
@@ -26,9 +26,14 @@ export type State = {
 };
 
 export async function createAudit(prevState: State, formData: FormData) {
+  const user = await getSession();
+  if (!user) {
+    return { message: "Not authenticated" };
+  }
+
   const validatedFields = auditFormSchema.safeParse({
     name: formData.get("name"),
-    auditor: formData.get("auditor"),
+    auditorId: formData.get("auditorId"),
     startDate: new Date(formData.get("startDate") as string),
     endDate: new Date(formData.get("endDate") as string),
   });
@@ -40,17 +45,15 @@ export async function createAudit(prevState: State, formData: FormData) {
     };
   }
 
-  const { name, auditor, startDate, endDate } = validatedFields.data;
-  const id = `AUD-${String(Math.floor(Math.random() * 900) + 100)}`; // Temp ID generation
+  const { name, auditorId, startDate, endDate } = validatedFields.data;
   const status = 'Scheduled';
 
   try {
     await prisma.$transaction([
       prisma.audit.create({
         data: {
-          id,
           name,
-          auditor,
+          auditorId,
           startDate,
           endDate,
           status,

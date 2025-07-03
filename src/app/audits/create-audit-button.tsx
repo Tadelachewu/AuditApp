@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, useFormState } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { createAudit, type State } from "./actions";
+import { fetchAuditors } from "@/lib/queries";
+import type { User } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Calendar as CalendarIcon } from "lucide-react";
@@ -16,10 +18,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const auditFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  auditor: z.string().min(3, "Auditor name must be at least 3 characters"),
+  auditorId: z.string().min(1, "An auditor must be selected"),
   startDate: z.date({ required_error: "A start date is required." }),
   endDate: z.date({ required_error: "An end date is required." }),
 }).refine((data) => data.endDate > data.startDate, {
@@ -30,20 +33,31 @@ const auditFormSchema = z.object({
 
 export function CreateAuditButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [auditors, setAuditors] = useState<User[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadAuditors() {
+      const fetchedAuditors = await fetchAuditors();
+      setAuditors(fetchedAuditors);
+    }
+    if (isDialogOpen) {
+      loadAuditors();
+    }
+  }, [isDialogOpen]);
 
   const form = useForm<z.infer<typeof auditFormSchema>>({
     resolver: zodResolver(auditFormSchema),
     defaultValues: {
       name: "",
-      auditor: "",
+      auditorId: "",
     }
   });
 
   const onSubmit = async (data: z.infer<typeof auditFormSchema>) => {
     const formData = new FormData();
     formData.append('name', data.name);
-    formData.append('auditor', data.auditor);
+    formData.append('auditorId', data.auditorId);
     formData.append('startDate', data.startDate.toISOString());
     formData.append('endDate', data.endDate.toISOString());
 
@@ -97,13 +111,24 @@ export function CreateAuditButton() {
             />
             <FormField
               control={form.control}
-              name="auditor"
+              name="auditorId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assigned Auditor</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., John Doe" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an auditor" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {auditors.map((auditor) => (
+                        <SelectItem key={auditor.id} value={auditor.id}>
+                          {auditor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

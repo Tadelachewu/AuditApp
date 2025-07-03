@@ -1,7 +1,11 @@
+import type { User as PrismaUser } from '@prisma/client';
+
+export type User = Omit<PrismaUser, 'password'>;
+
 export type Audit = {
   id: string;
   name: string;
-  auditor: string;
+  auditor: { name: string };
   start_date: string;
   end_date: string;
   status: 'In Progress' | 'Scheduled' | 'Completed';
@@ -33,7 +37,7 @@ export type Report = {
   id: string;
   audit_id: string;
   title: string;
-  generated_by: string;
+  generated_by: { name: string };
   date: string;
   status: 'Finalized' | 'Draft';
   summary: string | null;

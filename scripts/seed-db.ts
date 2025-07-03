@@ -1,114 +1,111 @@
-
 import 'dotenv/config';
 import prisma from '../src/lib/db';
-import { audits, checklists, documents, reports } from '../src/lib/data';
+import bcrypt from 'bcryptjs';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('❌ Refusing to run seed script in a production environment.');
-  console.error('This script is intended for development and testing purposes only.');
   process.exit(1);
 }
 
 async function main() {
   console.log('🌱 Starting database seeding...');
 
-  await prisma.$transaction(async (tx) => {
-    console.log("Upserting audits...");
-    for (const audit of audits) {
-      await tx.audit.upsert({
-        where: { id: audit.id },
-        update: {
-          ...audit,
-          startDate: new Date(audit.startDate),
-          endDate: new Date(audit.endDate),
-        },
-        create: {
-          ...audit,
-          startDate: new Date(audit.startDate),
-          endDate: new Date(audit.endDate),
-        },
-      });
-    }
-    console.log(`✅ Audits seeding complete.`);
+  // Clean up existing data
+  await prisma.activity.deleteMany({});
+  await prisma.reportFinding.deleteMany({});
+  await prisma.report.deleteMany({});
+  await prisma.audit.deleteMany({});
+  await prisma.checklist.deleteMany({});
+  await prisma.document.deleteMany({});
+  await prisma.user.deleteMany({});
+  console.log('🧹 Cleaned up existing data.');
 
-    console.log("Upserting checklists...");
-    for (const checklist of checklists) {
-      await tx.checklist.upsert({
-        where: { id: checklist.id },
-        update: {
-          ...checklist,
-          lastUpdated: new Date(checklist.lastUpdated)
-        },
-        create: {
-          ...checklist,
-          lastUpdated: new Date(checklist.lastUpdated)
-        },
-      });
-    }
-    console.log(`✅ Checklists seeding complete.`);
-
-    console.log("Upserting documents...");
-    for (const doc of documents) {
-        await tx.document.upsert({
-            where: { id: doc.id },
-            update: {
-                ...doc,
-                uploadDate: new Date(doc.uploadDate)
-            },
-            create: {
-                ...doc,
-                uploadDate: new Date(doc.uploadDate)
-            },
-        });
-    }
-    console.log(`✅ Documents seeding complete.`);
-    
-    console.log("Upserting reports and findings...");
-    for (const report of reports) {
-      const { findings, ...reportData } = report;
-      await tx.report.upsert({
-        where: { id: reportData.id },
-        update: {
-            ...reportData,
-            date: new Date(reportData.date),
-            complianceScore: report.compliance?.score ?? null,
-            complianceDetails: report.compliance?.details ?? null,
-        },
-        create: {
-          ...reportData,
-          date: new Date(reportData.date),
-          complianceScore: report.compliance?.score ?? null,
-          complianceDetails: report.compliance?.details ?? null,
-        },
-      });
-
-      if (findings && findings.length > 0) {
-        // Delete existing findings and create new ones to ensure data matches seed file
-        await tx.reportFinding.deleteMany({ where: { report_id: report.id } });
-        await tx.reportFinding.createMany({
-          data: findings.map(finding => ({
-            report_id: report.id,
-            title: finding.title,
-            recommendation: finding.recommendation,
-          })),
-        });
-      }
-    }
-    console.log(`✅ Reports and findings seeding complete.`);
-
-    console.log("🌱 Clearing and re-seeding activities table...");
-    await tx.activity.deleteMany({});
-    const allActivities = [
-      ...audits.map(a => ({ type: 'Audit' as const, date: new Date(a.startDate), description: `Audit "${a.name}" scheduled.` })),
-      ...checklists.map(c => ({ type: 'Checklist' as const, date: new Date(c.lastUpdated), description: `Checklist "${c.name}" updated.` })),
-      ...reports.map(r => ({ type: 'Report' as const, date: new Date(r.date), description: `Report "${r.title}" was ${r.status.toLowerCase()}.` })),
-    ].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-    await tx.activity.createMany({
-        data: allActivities,
-    });
-    console.log(`✅ Seeded ${allActivities.length} activities.`);
+  // Create Users
+  const hashedPasswordAdmin = await bcrypt.hash('password123', 10);
+  const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@xbank.com',
+      name: 'Admin User',
+      password: hashedPasswordAdmin,
+      role: 'ADMIN',
+    },
   });
+
+  const hashedPasswordAuditor = await bcrypt.hash('password123', 10);
+  const auditorUser = await prisma.user.create({
+    data: {
+      email: 'auditor@xbank.com',
+      name: 'Auditor User',
+      password: hashedPasswordAuditor,
+      role: 'AUDITOR',
+    },
+  });
+  console.log(`✅ Created users: ${adminUser.name}, ${auditorUser.name}`);
+
+
+  // Create Audits
+  const audit1 = await prisma.audit.create({
+    data: {
+      name: 'Q3 Financial Statement Audit',
+      auditorId: auditorUser.id,
+      startDate: new Date('2024-07-15'),
+      endDate: new Date('2024-08-15'),
+      status: 'In Progress',
+    }
+  });
+
+  const audit2 = await prisma.audit.create({
+    data: {
+      name: 'IT Security Compliance Check',
+      auditorId: adminUser.id,
+      startDate: new Date('2024-08-01'),
+      endDate: new Date('2024-08-31'),
+      status: 'Scheduled',
+    }
+  });
+  console.log('✅ Seeded audits.');
+  
+  // Create Checklists
+  await prisma.checklist.createMany({
+    data: [
+      { name: 'Quarterly Financial Closing', category: 'Finance', lastUpdated: new Date('2024-06-28') },
+      { name: 'Server Security Hardening', category: 'IT Security', lastUpdated: new Date('2024-07-05') },
+    ]
+  });
+  console.log('✅ Seeded checklists.');
+
+  // Create Documents
+  await prisma.document.createMany({
+    data: [
+        { title: 'Information Security Policy', type: 'Policy', version: 'v3.2', uploadDate: new Date('2024-01-15') },
+        { title: 'Incident Response Procedure', type: 'Procedure', version: 'v2.1', uploadDate: new Date('2024-03-22') },
+    ]
+  })
+  console.log('✅ Seeded documents.');
+
+  // Create Reports
+  const report1 = await prisma.report.create({
+    data: {
+      auditId: audit1.id,
+      title: 'Q3 Financial Statement Preliminary Report',
+      generatedById: auditorUser.id,
+      date: new Date(),
+      status: 'Draft',
+      summary: 'Initial review of financial statements is underway.'
+    }
+  })
+  console.log('✅ Seeded reports.');
+
+
+  // Create Activities
+  await prisma.activity.createMany({
+    data: [
+      { type: 'Audit', date: audit1.startDate, description: `Audit "${audit1.name}" was started.` },
+      { type: 'Audit', date: audit2.startDate, description: `Audit "${audit2.name}" was scheduled.` },
+      { type: 'Report', date: report1.date, description: `Report "${report1.title}" was created.` },
+    ]
+  });
+  console.log('✅ Seeded activities.');
   
   console.log('\n🎉 Database seeding complete!');
 }
