@@ -63,10 +63,10 @@ export function CreateAuditButton() {
 
     const result = await createAudit({} as State, formData);
     
-    if (result.message?.includes("Success")) {
+    if (result.success) {
         toast({
             title: "Success!",
-            description: "New audit has been scheduled.",
+            description: result.message,
         });
         form.reset();
         setIsDialogOpen(false);

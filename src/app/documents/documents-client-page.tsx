@@ -66,7 +66,7 @@ export default function DocumentsClientPage({ documents }: { documents: Document
     const action = data.id ? updateDocument : createDocument;
     const result = await action({} , formData);
 
-    if (result.message?.includes("Success")) {
+    if (result.success) {
       toast({
           title: "Success!",
           description: result.message,
@@ -95,9 +95,9 @@ export default function DocumentsClientPage({ documents }: { documents: Document
   const handleDuplicate = async (id: string) => {
     const result = await duplicateDocument(id);
     toast({
-        title: result.message?.includes("Success") ? "Success!" : "Error",
+        title: result.success ? "Success!" : "Error",
         description: result.message,
-        variant: result.message?.includes("Success") ? "default" : "destructive",
+        variant: result.success ? "default" : "destructive",
     });
   };
 
@@ -110,9 +110,9 @@ export default function DocumentsClientPage({ documents }: { documents: Document
     if (!activeDocument) return;
     const result = await deleteDocument(activeDocument.id);
     toast({
-        title: result.message?.includes("Success") ? "Success!" : "Error",
+        title: result.success ? "Success!" : "Error",
         description: result.message,
-        variant: result.message?.includes("Success") ? "default" : "destructive",
+        variant: result.success ? "default" : "destructive",
     });
     setIsDeleteConfirmOpen(false);
     setActiveDocument(null);

@@ -23,12 +23,13 @@ export type State = {
     endDate?: string[];
   };
   message?: string | null;
+  success?: boolean;
 };
 
 export async function createAudit(prevState: State, formData: FormData) {
   const user = await getSession();
   if (!user) {
-    return { message: "Not authenticated" };
+    return { success: false, message: "Not authenticated" };
   }
 
   const validatedFields = auditFormSchema.safeParse({
@@ -42,6 +43,7 @@ export async function createAudit(prevState: State, formData: FormData) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: "Failed to create audit. Please check the fields.",
+      success: false,
     };
   }
 
@@ -71,6 +73,7 @@ export async function createAudit(prevState: State, formData: FormData) {
     console.error(error);
     return {
       message: "Database Error: Failed to create audit.",
+      success: false,
     };
   }
 
@@ -78,6 +81,7 @@ export async function createAudit(prevState: State, formData: FormData) {
   revalidatePath("/");
   return {
     message: "Successfully created audit.",
-    errors: {}
+    errors: {},
+    success: true,
   }
 }
