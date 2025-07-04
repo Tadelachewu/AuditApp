@@ -3,7 +3,8 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  // Add both the native and the linux binary targets
+  binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.1.x"]
 }
 
 datasource db {
@@ -11,31 +12,56 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  AUDITOR
+  MANAGER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FindingRiskRating {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FindingStatus {
+  OPEN
+  IN_PROGRESS
+  REMEDIATED
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  name      String?
+  name      String
   password  String
   role      Role     @default(AUDITOR)
-  audits    Audit[]
-  reports   Report[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  audits    Audit[]
+  reports   Report[]
 }
 
 model Audit {
-  id        String    @id @default(cuid())
-  name      String
-  auditor   User      @relation(fields: [auditorId], references: [id])
-  auditorId String
-  startDate DateTime
-  endDate   DateTime
-  status    String
-  scope     String
-  riskLevel RiskLevel
-  reports   Report[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  name        String
+  auditor     User      @relation(fields: [auditorId], references: [id])
+  auditorId   String
+  startDate   DateTime
+  endDate     DateTime
+  status      String
+  scope       String
+  riskLevel   RiskLevel
+  reports     Report[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Checklist {
@@ -66,9 +92,9 @@ model Report {
   generatedById     String
   date              DateTime
   status            String
-  summary           String?
+  summary           String?         @db.Text
   complianceScore   Int?
-  complianceDetails String?
+  complianceDetails String?         @db.Text
   findings          ReportFinding[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -79,7 +105,7 @@ model ReportFinding {
   report         Report            @relation(fields: [reportId], references: [id])
   reportId       String
   title          String
-  recommendation String
+  recommendation String            @db.Text
   riskRating     FindingRiskRating
   status         FindingStatus
   owner          String
@@ -91,32 +117,6 @@ model Activity {
   id          Int      @id @default(autoincrement())
   type        String
   date        DateTime
-  description String
+  description String   @db.Text
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-enum Role {
-  ADMIN
-  AUDITOR
-  MANAGER
-}
-
-enum RiskLevel {
-  HIGH
-  MEDIUM
-  LOW
-}
-
-enum FindingRiskRating {
-  CRITICAL
-  HIGH
-  MEDIUM
-  LOW
-}
-
-enum FindingStatus {
-  OPEN
-  IN_PROGRESS
-  REMEDIATED
 }
