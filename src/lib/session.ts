@@ -45,7 +45,8 @@ export async function deleteSession() {
 }
 
 export const getSession = cache(async () => {
-  const sessionCookie = cookies().get('session')?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) {
     return null;
   }
