@@ -5,8 +5,13 @@ import { format } from 'date-fns';
 import { fetchCardData, fetchRecentActivities, fetchUpcomingDeadlines } from '@/lib/queries';
 import type { Activity as ActivityType } from '@/lib/definitions';
 import { DashboardLayout } from '@/components/dashboard-layout';
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session-crypto';
 
 export default async function DashboardPage() {
+  const sessionCookie = cookies().get('session')?.value;
+  const user = sessionCookie ? await decrypt(sessionCookie) : null;
+  
   const { 
     ongoingAuditsCount,
     checklistsCount,
@@ -24,7 +29,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout user={user}>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>

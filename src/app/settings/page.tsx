@@ -1,12 +1,15 @@
-import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session-crypto';
 import { DashboardLayout } from "@/components/dashboard-layout";
 import SettingsForm from "./settings-form";
-import { redirect } from "next/navigation";
 import { fetchAllUsers } from "@/lib/queries";
 import UserManagement from "./user-management";
 
 export default async function SettingsPage() {
-  const user = await getSession();
+  const sessionCookie = cookies().get('session')?.value;
+  const user = sessionCookie ? await decrypt(sessionCookie) : null;
+  
   if (!user) {
     redirect('/login');
   }
