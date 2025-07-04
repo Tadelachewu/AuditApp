@@ -4,11 +4,11 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { getSession } from "@/lib/session";
 
 export default async function ChecklistsPage() {
-  const checklists = await fetchChecklists();
   const session = await getSession();
+  const checklists = await fetchChecklists();
 
   return (
-    <DashboardLayout>
+    <DashboardLayout user={session}>
       <ChecklistClientPage checklists={checklists || []} userRole={session?.role} />
     </DashboardLayout>
   );

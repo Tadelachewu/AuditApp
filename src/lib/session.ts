@@ -16,6 +16,8 @@ export async function createSession(user: Omit<User, 'createdAt' | 'updatedAt'>)
   
   const { password, ...userWithoutPassword } = user;
   
+  // This needs to be re-imported as it is not available in the global scope
+  const { encrypt } = await import('./session-crypto');
   const session = await encrypt({ user: userWithoutPassword, expires });
 
   cookies().set('session', session, {
