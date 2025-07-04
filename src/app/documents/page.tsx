@@ -1,12 +1,10 @@
 import { fetchDocuments } from "@/lib/queries";
 import DocumentsClientPage from "./documents-client-page";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from "@/lib/session";
 
 export default async function DocumentsPage() {
-  const sessionCookie = cookies().get('session')?.value;
-  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+  const session = await getSession();
   const documents = await fetchDocuments();
 
   return (

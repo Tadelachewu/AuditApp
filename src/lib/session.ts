@@ -1,28 +1,53 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { User } from './definitions';
+import { SignJWT, jwtVerify } from 'jose';
+import type { User as PrismaUser } from '@prisma/client';
 import { cache } from 'react';
 
-// This function has been removed as it was causing persistent errors with Next.js dynamic rendering.
-// The logic is now handled directly inside each page component.
+function getSecretKey() {
+  const secretKey = process.env.SESSION_SECRET;
+  if (!secretKey) {
+    throw new Error('FATAL: SESSION_SECRET environment variable is not set.');
+  }
+  return new TextEncoder().encode(secretKey);
+}
 
-export async function createSession(user: Omit<User, 'createdAt' | 'updatedAt'>) {
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now
-  
-  const { password, ...userWithoutPassword } = user;
-  
-  // This needs to be re-imported as it is not available in the global scope
-  const { encrypt } = await import('./session-crypto');
-  const session = await encrypt({ user: userWithoutPassword, expires });
+async function encrypt(payload: { user: Omit<PrismaUser, 'password'>, expires: Date }) {
+  const key = getSecretKey();
+  return new SignJWT({ ...payload.user })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(payload.expires)
+    .sign(key);
+}
 
-  cookies().set('session', session, {
-    expires,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-  });
+async function decrypt(input: string): Promise<Omit<PrismaUser, 'password'> | null> {
+  try {
+    const key = getSecretKey();
+    const { payload } = await jwtVerify(input, key, {
+      algorithms: ['HS256'],
+    });
+    const { iat, exp, ...user } = payload;
+    return user as Omit<PrismaUser, 'password'>;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function createSession(user: Omit<PrismaUser, 'password'>) {
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
+  const session = await encrypt({ user, expires });
+  cookies().set('session', session, { expires, httpOnly: true });
 }
 
 export async function deleteSession() {
   cookies().delete('session');
 }
+
+export const getSession = cache(async () => {
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) {
+    return null;
+  }
+  return await decrypt(sessionCookie);
+});
