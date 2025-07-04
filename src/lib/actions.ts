@@ -2,11 +2,9 @@
 
 import { z } from "zod";
 import prisma from "@/lib/db";
-import { revalidatePath } from "next/cache";
 import bcrypt from 'bcryptjs';
 import { createSession, deleteSession } from '@/lib/session';
 import { redirect } from "next/navigation";
-import type { User } from "@prisma/client";
 
 // --- AUTH ACTIONS ---
 

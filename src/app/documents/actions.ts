@@ -3,6 +3,7 @@
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/session";
 
 const documentFormSchema = z.object({
     title: z.string().min(3, { message: "Title must be at least 3 characters." }),
@@ -23,8 +24,20 @@ export type State = {
   success?: boolean;
 };
 
+async function checkAuth() {
+    const session = await getSession();
+    if (!session || !['ADMIN', 'AUDITOR'].includes(session.role)) {
+        throw new Error("Unauthorized");
+    }
+}
+
 
 export async function createDocument(prevState: State, formData: FormData) {
+    try {
+        await checkAuth();
+    } catch (e) {
+        return { message: "Unauthorized.", success: false };
+    }
     const validatedFields = documentFormSchema.safeParse({
         title: formData.get("title"),
         type: formData.get("type"),
@@ -63,6 +76,11 @@ export async function createDocument(prevState: State, formData: FormData) {
 
 
 export async function updateDocument(prevState: State, formData: FormData) {
+    try {
+        await checkAuth();
+    } catch (e) {
+        return { message: "Unauthorized.", success: false };
+    }
     const validatedFields = updateDocumentFormSchema.safeParse({
         id: formData.get("id"),
         title: formData.get("title"),
@@ -111,6 +129,7 @@ export async function updateDocument(prevState: State, formData: FormData) {
 
 export async function duplicateDocument(id: string) {
     try {
+        await checkAuth();
         const original = await prisma.document.findUnique({
             where: { id },
         });
@@ -139,6 +158,7 @@ export async function duplicateDocument(id: string) {
 
 export async function deleteDocument(id: string) {
     try {
+        await checkAuth();
         await prisma.document.delete({
             where: { id },
         });

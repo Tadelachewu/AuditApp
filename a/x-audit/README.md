@@ -71,9 +71,38 @@ The application has two parts that need to run at the same time: the main web se
 
 Once both servers show they are running, open your browser and go to **`http://localhost:9002`**.
 
-You can now log in with the seeded users:
--   **Admin:** `admin@xbank.com`
--   **Auditor:** `auditor@xbank.com`
--   **Manager:** `manager@xbank.com`
+---
 
-The password for all users is `password123`.
+## User Roles & Login Credentials
+
+The application has three distinct user roles, each with different permissions. You can log in with the following seeded users to test each role. The password for all users is `password123`.
+
+### 1. Admin
+
+-   **Email:** `admin@xbank.com`
+-   **Permissions:**
+    -   Has full access to all features.
+    -   Can schedule new audits and assign them to auditors.
+    -   Can create, read, update, and delete all checklists and documents.
+    -   Can view all reports.
+    -   Can use the AI-Powered Risk Assessment tool.
+    -   Can manage user profiles.
+
+### 2. Auditor
+
+-   **Email:** `auditor@xbank.com`
+-   **Permissions:**
+    -   The primary "doer" role for conducting audits.
+    -   Can view all audits but can only manage audits assigned to them.
+    -   Can create, read, update, and delete checklists and documents (evidence, policies, etc.).
+    -   Can generate and view reports for their assigned audits.
+    -   **Cannot** schedule new audits or access the Risk Assessment page.
+
+### 3. Manager
+
+-   **Email:** `manager@xbank.com`
+-   **Permissions:**
+    -   A read-only role designed for oversight and monitoring.
+    -   Can view all audits, checklists, reports, and documents.
+    -   **Cannot** create, edit, or delete any data. Buttons for actions like "Schedule New Audit", "Create Checklist", or "Upload Document" will be hidden.
+    -   **Cannot** access the Risk Assessment page.
