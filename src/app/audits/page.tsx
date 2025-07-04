@@ -5,8 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CreateAuditButton } from "./create-audit-button";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import type { RiskLevel } from "@prisma/client";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from "@/lib/session";
 
 const riskLevelVariant: Record<RiskLevel, 'destructive' | 'secondary' | 'outline'> = {
   HIGH: 'destructive',
@@ -15,8 +14,7 @@ const riskLevelVariant: Record<RiskLevel, 'destructive' | 'secondary' | 'outline
 }
 
 export default async function AuditsPage() {
-  const sessionCookie = cookies().get('session')?.value;
-  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+  const session = await getSession();
   const audits = await fetchAudits();
   const userRole = session?.role;
 

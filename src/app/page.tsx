@@ -5,12 +5,10 @@ import { format } from 'date-fns';
 import { fetchCardData, fetchRecentActivities, fetchUpcomingDeadlines } from '@/lib/queries';
 import type { Activity as ActivityType } from '@/lib/definitions';
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from '@/lib/session';
 
 export default async function DashboardPage() {
-  const sessionCookie = cookies().get('session')?.value;
-  const user = sessionCookie ? await decrypt(sessionCookie) : null;
+  const user = await getSession();
   
   const { 
     ongoingAuditsCount,

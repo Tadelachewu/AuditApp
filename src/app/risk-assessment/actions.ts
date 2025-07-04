@@ -1,12 +1,10 @@
 "use server";
 
 import { assessRisk, type RiskAssessmentInput, type RiskAssessmentOutput } from "@/ai/flows/risk-assessment";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from "@/lib/session";
 
 export async function runRiskAssessment(input: RiskAssessmentInput): Promise<RiskAssessmentOutput> {
-  const sessionCookie = cookies().get('session')?.value;
-  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+  const session = await getSession();
   if (session?.role !== 'ADMIN') {
     throw new Error("Unauthorized: You do not have permission to run risk assessments.");
   }

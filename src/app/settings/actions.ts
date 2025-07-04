@@ -3,8 +3,7 @@
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from "@/lib/session";
 import { Role } from "@prisma/client";
 import bcrypt from 'bcryptjs';
 
@@ -23,8 +22,7 @@ export type ProfileState = {
 };
 
 export async function updateUserProfile(prevState: ProfileState, formData: FormData) {
-  const sessionCookie = cookies().get('session')?.value;
-  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+  const session = await getSession();
   
   if (!session) {
     return { success: false, message: "Authentication error." };
@@ -70,8 +68,7 @@ export async function updateUserProfile(prevState: ProfileState, formData: FormD
 // --- User Management Actions (Admin only) ---
 
 async function checkAdminAuth() {
-    const sessionCookie = cookies().get('session')?.value;
-    const session = sessionCookie ? await decrypt(sessionCookie) : null;
+    const session = await getSession();
     if (!session || session.role !== 'ADMIN') {
         throw new Error("Unauthorized: Admin access required.");
     }

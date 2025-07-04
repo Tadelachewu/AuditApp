@@ -1,12 +1,10 @@
 import { fetchChecklists } from "@/lib/queries";
 import ChecklistClientPage from "./checklists-client-page";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from "@/lib/session";
 
 export default async function ChecklistsPage() {
-  const sessionCookie = cookies().get('session')?.value;
-  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+  const session = await getSession();
   const checklists = await fetchChecklists();
 
   return (

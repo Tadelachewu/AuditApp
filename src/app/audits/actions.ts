@@ -5,8 +5,7 @@ import prisma from "@/lib/db";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import type { User } from "@prisma/client";
 import { RiskLevel } from "@prisma/client";
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session-crypto';
+import { getSession } from "@/lib/session";
 
 const auditFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -34,8 +33,7 @@ export type State = {
 };
 
 export async function createAudit(prevState: State, formData: FormData) {
-  const sessionCookie = cookies().get('session')?.value;
-  const session = sessionCookie ? await decrypt(sessionCookie) : null;
+  const session = await getSession();
 
   if (session?.role !== 'ADMIN') {
     return {
