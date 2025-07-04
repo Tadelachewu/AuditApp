@@ -2,10 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider   = "prisma-client-js"
-  // The `engineType` is set to `library` to use the JS-based Prisma engine,
-  // which is more portable and avoids issues with missing system libraries.
-  engineType = "library"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -16,7 +14,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  name      String
+  name      String?
   password  String
   role      Role     @default(AUDITOR)
   audits    Audit[]
@@ -28,65 +26,75 @@ model User {
 model Audit {
   id        String    @id @default(cuid())
   name      String
-  auditorId String
   auditor   User      @relation(fields: [auditorId], references: [id])
+  auditorId String
   startDate DateTime
   endDate   DateTime
-  status    String    @default("Scheduled") // e.g., "Scheduled", "In Progress", "Completed"
+  status    String
   scope     String
   riskLevel RiskLevel
   reports   Report[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Checklist {
   id          String   @id @default(cuid())
   name        String
   category    String
-  lastUpdated DateTime @updatedAt
+  lastUpdated DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Document {
   id         String   @id @default(cuid())
   title      String
-  type       String   // e.g., "Policy", "Procedure", "Evidence"
-  version    String   @default("v1.0")
-  uploadDate DateTime @default(now())
+  type       String
+  version    String
+  uploadDate DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Report {
   id                String          @id @default(cuid())
-  auditId           String
   audit             Audit           @relation(fields: [auditId], references: [id])
+  auditId           String
   title             String
-  generatedById     String
   generatedBy       User            @relation(fields: [generatedById], references: [id])
-  date              DateTime        @default(now())
-  status            String          @default("Draft") // e.g., "Draft", "Finalized"
+  generatedById     String
+  date              DateTime
+  status            String
   summary           String?
   complianceScore   Int?
   complianceDetails String?
   findings          ReportFinding[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }
 
 model ReportFinding {
-  id             String          @id @default(cuid())
+  id             String            @id @default(cuid())
+  report         Report            @relation(fields: [reportId], references: [id])
   reportId       String
-  report         Report          @relation(fields: [reportId], references: [id])
   title          String
   recommendation String
   riskRating     FindingRiskRating
   status         FindingStatus
   owner          String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  type        String   // "Audit", "Checklist", "Report"
+  type        String
   date        DateTime
   description String
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
-
 
 enum Role {
   ADMIN
@@ -95,16 +103,16 @@ enum Role {
 }
 
 enum RiskLevel {
-  LOW
-  MEDIUM
   HIGH
+  MEDIUM
+  LOW
 }
 
 enum FindingRiskRating {
-  LOW
-  MEDIUM
-  HIGH
   CRITICAL
+  HIGH
+  MEDIUM
+  LOW
 }
 
 enum FindingStatus {
