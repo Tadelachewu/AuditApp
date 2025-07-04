@@ -36,7 +36,8 @@ export async function login(prevState: any, formData: FormData) {
       return { message: "Invalid credentials." };
     }
 
-    await createSession(user);
+    const { password: _, ...userWithoutPassword } = user;
+    await createSession(userWithoutPassword);
 
   } catch (error) {
     console.error(error);
@@ -81,7 +82,8 @@ export async function register(prevState: any, formData: FormData) {
       },
     });
 
-    await createSession(user);
+    const { password: _, ...userWithoutPassword } = user;
+    await createSession(userWithoutPassword);
 
   } catch (error) {
     console.error(error);

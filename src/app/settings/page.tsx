@@ -6,16 +6,16 @@ import { fetchAllUsers } from "@/lib/queries";
 import UserManagement from "./user-management";
 
 export default async function SettingsPage() {
-  const user = await getSession();
+  const session = await getSession();
   
-  if (!user) {
+  if (!session) {
     redirect('/login');
   }
 
-  const allUsers = user.role === 'ADMIN' ? await fetchAllUsers() : [];
+  const allUsers = session.role === 'ADMIN' ? await fetchAllUsers() : [];
 
   return (
-    <DashboardLayout user={user}>
+    <DashboardLayout user={session}>
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div>
             <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
@@ -24,9 +24,9 @@ export default async function SettingsPage() {
             </p>
         </div>
         
-        <SettingsForm user={user} />
+        <SettingsForm user={session} />
 
-        {user.role === 'ADMIN' && (
+        {session.role === 'ADMIN' && (
           <UserManagement initialUsers={allUsers} />
         )}
       </div>
