@@ -1,9 +1,11 @@
 import { RiskAssessmentForm } from "@/components/risk-assessment-form";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { getSession } from "@/lib/session";
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session-crypto';
 
 export default async function RiskAssessmentPage() {
-  const session = await getSession();
+  const sessionCookie = cookies().get('session')?.value;
+  const session = sessionCookie ? await decrypt(sessionCookie) : null;
   return (
     <DashboardLayout user={session}>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
