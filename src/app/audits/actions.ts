@@ -5,6 +5,7 @@ import prisma from "@/lib/db";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import type { User } from "@prisma/client";
 import { RiskLevel } from "@prisma/client";
+import { getSession } from "@/lib/session";
 
 const auditFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -32,6 +33,14 @@ export type State = {
 };
 
 export async function createAudit(prevState: State, formData: FormData) {
+  const session = await getSession();
+  if (session?.role !== 'ADMIN') {
+    return {
+      message: "Unauthorized: You do not have permission to create audits.",
+      success: false,
+    };
+  }
+  
   const validatedFields = auditFormSchema.safeParse({
     name: formData.get("name"),
     scope: formData.get("scope"),

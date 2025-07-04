@@ -3,6 +3,7 @@
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/session";
 
 const checklistFormSchema = z.object({
     name: z.string().min(3, { message: "Name must be at least 3 characters." }),
@@ -23,7 +24,19 @@ export type State = {
   success?: boolean;
 };
 
+async function checkAuth() {
+    const session = await getSession();
+    if (!session || !['ADMIN', 'AUDITOR'].includes(session.role)) {
+        throw new Error("Unauthorized");
+    }
+}
+
 export async function createChecklist(prevState: State, formData: FormData) {
+    try {
+        await checkAuth();
+    } catch (e) {
+        return { message: "Unauthorized.", success: false };
+    }
     const validatedFields = checklistFormSchema.safeParse({
         name: formData.get("name"),
         category: formData.get("category"),
@@ -74,6 +87,11 @@ export async function createChecklist(prevState: State, formData: FormData) {
 
 
 export async function updateChecklist(prevState: State, formData: FormData) {
+    try {
+        await checkAuth();
+    } catch (e) {
+        return { message: "Unauthorized.", success: false };
+    }
     const validatedFields = updateChecklistFormSchema.safeParse({
         id: formData.get("id"),
         name: formData.get("name"),
@@ -106,6 +124,7 @@ export async function updateChecklist(prevState: State, formData: FormData) {
 
 export async function duplicateChecklist(id: string) {
     try {
+        await checkAuth();
         const original = await prisma.checklist.findUnique({
             where: { id },
         });
@@ -133,6 +152,7 @@ export async function duplicateChecklist(id: string) {
 
 export async function deleteChecklist(id: string) {
     try {
+        await checkAuth();
         await prisma.checklist.delete({
             where: { id },
         });

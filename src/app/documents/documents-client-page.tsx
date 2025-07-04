@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import type { Role } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,11 +28,13 @@ const documentFormSchema = z.object({
   type: z.string().min(1, "Type is required"),
 });
 
-export default function DocumentsClientPage({ documents }: { documents: Document[] }) {
+export default function DocumentsClientPage({ documents, userRole }: { documents: Document[], userRole?: Role }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const { toast } = useToast();
+
+  const canModify = userRole === 'ADMIN' || userRole === 'AUDITOR';
 
   const form = useForm<z.infer<typeof documentFormSchema>>({
     resolver: zodResolver(documentFormSchema),
@@ -154,10 +157,12 @@ export default function DocumentsClientPage({ documents }: { documents: Document
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Document Management</h2>
         <div className="flex items-center space-x-2">
-            <Button onClick={handleCreate}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Upload Document
-            </Button>
+            {canModify && (
+                <Button onClick={handleCreate}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Upload Document
+                </Button>
+            )}
         </div>
       </div>
       <Card>
@@ -200,16 +205,20 @@ export default function DocumentsClientPage({ documents }: { documents: Document
                           <DropdownMenuItem onClick={() => handleDownload(doc.id)}>
                             <Download className="mr-2 h-4 w-4" /> Download
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(doc)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDuplicate(doc.id)}>
-                            <Copy className="mr-2 h-4 w-4" /> Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(doc)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
+                          {canModify && (
+                            <>
+                                <DropdownMenuItem onClick={() => handleEdit(doc)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDuplicate(doc.id)}>
+                                    <Copy className="mr-2 h-4 w-4" /> Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(doc)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

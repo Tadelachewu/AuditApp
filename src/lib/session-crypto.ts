@@ -6,7 +6,8 @@ import type { User as PrismaUser } from '@prisma/client';
 function getSecretKey() {
   const secretKey = process.env.SESSION_SECRET;
   if (!secretKey) {
-    throw new Error('SESSION_SECRET environment variable is not set. Please create or check your .env file.');
+    // This is a critical error, so we throw to prevent insecure operation.
+    throw new Error('FATAL: SESSION_SECRET environment variable is not set. Please create or check your .env file.');
   }
   return new TextEncoder().encode(secretKey);
 }
