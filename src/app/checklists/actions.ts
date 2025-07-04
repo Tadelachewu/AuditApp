@@ -3,7 +3,8 @@
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getSession } from "@/lib/session";
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session-crypto';
 
 const checklistFormSchema = z.object({
     name: z.string().min(3, { message: "Name must be at least 3 characters." }),
@@ -25,7 +26,8 @@ export type State = {
 };
 
 async function checkAuth() {
-    const session = await getSession();
+    const sessionCookie = cookies().get('session')?.value;
+    const session = sessionCookie ? await decrypt(sessionCookie) : null;
     if (!session || !['ADMIN', 'AUDITOR'].includes(session.role)) {
         throw new Error("Unauthorized");
     }
